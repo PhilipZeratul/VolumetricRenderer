@@ -31,7 +31,12 @@
                 float3 viewDir : TEXCOORD1;
             };
 
+            TEXTURE2D_SAMPLER2D(_MainTex, sampler_MainTex);
+            TEXTURE2D_SAMPLER2D(_CameraDepthTexture, sampler_CameraDepthTexture);
+
             float4 _ScreenQuadCorners[3];
+            int _MaxSteps;
+            float _MaxDistance;
 
             Varyings Vert(Attributes v)
             {
@@ -52,7 +57,23 @@
             {
                 float3 viewDirWS = IN.viewDir;
 
-                float4 color = float4(viewDirWS, 1);
+                float depth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, IN.uv).r;
+                float viewDepth = LinearEyeDepth(depth);
+
+                float3 currentPos = _WorldSpaceCameraPos.xyz;
+                float stepDist = _MaxDistance / _MaxSteps;
+                float accumDist = 0.0;
+                
+                for (int i = 0; i < _MaxSteps && accumDist < viewDepth; i++)
+                {
+                    currentPos += stepDist * viewDirWS;
+                    accumDist += stepDist;
+                }
+
+                float4 mainTex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
+
+                float fog = exp(-accumDist * 0.3);
+                float4 color = lerp(1, mainTex, fog);
                 //float4 color = float4(IN.uv, 0, 1);
                 return color;
             }

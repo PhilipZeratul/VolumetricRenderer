@@ -30,6 +30,12 @@ MonoBehaviour:
   enabled:
     overrideState: 1
     value: 1
+  maxSteps:
+    overrideState: 1
+    value: 45
+  maxDistance:
+    overrideState: 1
+    value: 2.3
 --- !u!114 &114864427908567668
 MonoBehaviour:
   m_ObjectHideFlags: 3

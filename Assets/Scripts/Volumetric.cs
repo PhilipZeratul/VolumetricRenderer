@@ -4,11 +4,14 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.PostProcessing;
 
 [Serializable]
-[PostProcess(typeof(VolumetricRenderer), PostProcessEvent.AfterStack, "Custom/VolumetricRenderer")]
+[PostProcess(typeof(VolumetricRenderer), PostProcessEvent.AfterStack, "Custom/VolumetricRenderer", false)]
 public sealed class Volumetric : PostProcessEffectSettings
 {
-    //[Range(0f, 1f), Tooltip("Grayscale effect intensity.")]
-    //public FloatParameter blend = new FloatParameter { value = 0.5f };
+    [DisplayName("Ray Marching Steps"), Range(0f, 100f)]
+    public IntParameter maxSteps = new IntParameter { value = 50 };
+
+    [DisplayName("Ray Marching Distance"), Range(0.1f, 10f)]
+    public FloatParameter maxDistance = new FloatParameter { value = 10f };
 }
 
 public class VolumetricRenderer : PostProcessEffectRenderer<Volumetric>
@@ -44,6 +47,9 @@ public class VolumetricRenderer : PostProcessEffectRenderer<Volumetric>
         screenTriangleCorners[2] = camera.transform.TransformVector(screenTriangleCorners[2]) / camera.farClipPlane;
 
         sheet.properties.SetVectorArray("_ScreenQuadCorners", screenTriangleCorners);
+        sheet.properties.SetInt("_MaxSteps", settings.maxSteps);
+        sheet.properties.SetFloat("_MaxDistance", settings.maxDistance);
+
 
         context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
     }
