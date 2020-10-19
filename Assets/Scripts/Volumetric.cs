@@ -33,7 +33,6 @@ namespace Volumetric
             {
                 name = "Volumetric Command Buffer"
             };
-            shader = Shader.Find("Volumetric/VolumetricRenderer");
 
             CreateVolumes();
         }
@@ -41,8 +40,9 @@ namespace Volumetric
         public override void Render(PostProcessRenderContext context)
         {
             camera = context.camera;
-            PropertySheet sheet = context.propertySheets.Get(shader);
+            shader = context.resources.shaders.volumetric;
             compute = context.resources.computeShaders.volumetric;
+            PropertySheet sheet = context.propertySheets.Get(shader);
 
             SetProperties();
             WriteMaterialVolume();

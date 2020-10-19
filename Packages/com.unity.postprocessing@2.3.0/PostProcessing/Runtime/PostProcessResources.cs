@@ -138,6 +138,11 @@ namespace UnityEngine.Rendering.PostProcessing
             public Shader screenSpaceReflections;
 
             /// <summary>
+            /// The shader used for Volumetric
+            /// </summary>
+            public Shader volumetric;
+
+            /// <summary>
             /// Returns a copy of this class and its content.
             /// </summary>
             /// <returns>A copy of this class and its content.</returns>
