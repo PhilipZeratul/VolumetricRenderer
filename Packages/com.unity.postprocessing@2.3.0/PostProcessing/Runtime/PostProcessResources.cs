@@ -214,6 +214,11 @@ namespace UnityEngine.Rendering.PostProcessing
             public ComputeShader gaussianDownsample;
 
             /// <summary>
+            /// The compute shader used for Volumetric.
+            /// </summary>
+            public ComputeShader volumetric;
+
+            /// <summary>
             /// Returns a copy of this class and its content.
             /// </summary>
             /// <returns>A copy of this class and its content.</returns>

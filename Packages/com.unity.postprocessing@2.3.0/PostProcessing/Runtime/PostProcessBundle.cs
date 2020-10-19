@@ -19,7 +19,7 @@ namespace UnityEngine.Rendering.PostProcessing
         /// </summary>
         public PostProcessEffectSettings settings { get; private set; }
 
-        internal PostProcessEffectRenderer renderer
+        public PostProcessEffectRenderer renderer
         {
             get
             {

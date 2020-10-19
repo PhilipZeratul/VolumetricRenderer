@@ -13,29 +13,7 @@ MonoBehaviour:
   m_Name: PostProcessing Profile
   m_EditorClassIdentifier: 
   settings:
-  - {fileID: 114778629547284194}
---- !u!114 &114778629547284194
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cce29e55bc7624846852267077d81c94, type: 3}
-  m_Name: Volumetric
-  m_EditorClassIdentifier: 
-  active: 1
-  enabled:
-    overrideState: 1
-    value: 1
-  maxSteps:
-    overrideState: 1
-    value: 44
-  maxDistance:
-    overrideState: 1
-    value: 9.26
+  - {fileID: 114997943067577898}
 --- !u!114 &114864427908567668
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -52,3 +30,25 @@ MonoBehaviour:
   enabled:
     overrideState: 1
     value: 1
+--- !u!114 &114997943067577898
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cce29e55bc7624846852267077d81c94, type: 3}
+  m_Name: Volumetric
+  m_EditorClassIdentifier: 
+  active: 1
+  enabled:
+    overrideState: 1
+    value: 1
+  maxSteps:
+    overrideState: 0
+    value: 50
+  maxDistance:
+    overrideState: 0
+    value: 10
