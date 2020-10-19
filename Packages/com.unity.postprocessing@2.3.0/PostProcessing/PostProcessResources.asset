@@ -119,6 +119,7 @@ MonoBehaviour:
     multiScaleAO: {fileID: 4800000, guid: 67f9497810829eb4791ec19e95781e51, type: 3}
     screenSpaceReflections: {fileID: 4800000, guid: f997a3dc9254c44459323cced085150c,
       type: 3}
+    volumetric: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
   computeShaders:
     autoExposure: {fileID: 7200000, guid: 34845e0ca016b7448842e965db5890a5, type: 3}
     exposureHistogram: {fileID: 7200000, guid: 8c2fcbdf9bc58664f89917f7b9d79501, type: 3}

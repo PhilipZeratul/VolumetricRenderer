@@ -144,9 +144,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   volumeType: 0
   blendType: 0
-  scatteringCoef: {r: 0, g: 0, b: 0, a: 0}
-  absorption: 0
-  phaseG: 0
+  scatteringCoef: {r: 0.58431375, g: 0.3776945, b: 0.2470588, a: 0}
+  absorptionCoef: 0.78
+  phaseG: 1.14
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0

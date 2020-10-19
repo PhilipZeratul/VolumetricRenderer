@@ -21,7 +21,6 @@ namespace Volumetric
     public partial class VolumetricRenderer : PostProcessEffectRenderer<Volumetric>
     {
         private Camera camera;
-        private CommandBuffer commandBuffer;
         private Shader shader;
         private ComputeShader compute;
         private Vector3[] frustumCorners = new Vector3[4];
@@ -29,40 +28,40 @@ namespace Volumetric
 
         public override void Init()
         {
-            commandBuffer = new CommandBuffer()
-            {
-                name = "Volumetric Command Buffer"
-            };
-
             CreateVolumes();
         }
 
         public override void Render(PostProcessRenderContext context)
         {
+            context.command.Clear();
+
             camera = context.camera;
             shader = context.resources.shaders.volumetric;
             compute = context.resources.computeShaders.volumetric;
             PropertySheet sheet = context.propertySheets.Get(shader);
 
-            SetProperties();
-            WriteMaterialVolume();
+            SetProperties(sheet);
+            WriteMaterialVolume(context.command);
 
-            camera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, frustumCorners);
+            //camera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, frustumCorners);
 
-            screenTriangleCorners[0] = new Vector4(frustumCorners[1].x, frustumCorners[1].y, camera.farClipPlane, 0);
-            screenTriangleCorners[1] = new Vector4(frustumCorners[0].x, -3.0f * frustumCorners[1].y, camera.farClipPlane, 0);
-            screenTriangleCorners[2] = new Vector4(3.0f * frustumCorners[2].x, frustumCorners[1].y, camera.farClipPlane, 0);
+            //screenTriangleCorners[0] = new Vector4(frustumCorners[1].x, frustumCorners[1].y, camera.farClipPlane, 0);
+            //screenTriangleCorners[1] = new Vector4(frustumCorners[0].x, -3.0f * frustumCorners[1].y, camera.farClipPlane, 0);
+            //screenTriangleCorners[2] = new Vector4(3.0f * frustumCorners[2].x, frustumCorners[1].y, camera.farClipPlane, 0);
 
-            screenTriangleCorners[0] = camera.transform.TransformVector(screenTriangleCorners[0]) / camera.farClipPlane;
-            screenTriangleCorners[1] = camera.transform.TransformVector(screenTriangleCorners[1]) / camera.farClipPlane;
-            screenTriangleCorners[2] = camera.transform.TransformVector(screenTriangleCorners[2]) / camera.farClipPlane;
+            //screenTriangleCorners[0] = camera.transform.TransformVector(screenTriangleCorners[0]) / camera.farClipPlane;
+            //screenTriangleCorners[1] = camera.transform.TransformVector(screenTriangleCorners[1]) / camera.farClipPlane;
+            //screenTriangleCorners[2] = camera.transform.TransformVector(screenTriangleCorners[2]) / camera.farClipPlane;
 
-            sheet.properties.SetVectorArray("_ScreenQuadCorners", screenTriangleCorners);
-            sheet.properties.SetInt("_MaxSteps", settings.maxSteps);
-            sheet.properties.SetFloat("_MaxDistance", settings.maxDistance);
+            //sheet.properties.SetVectorArray("_ScreenQuadCorners", screenTriangleCorners);
+            //sheet.properties.SetInt("_MaxSteps", settings.maxSteps);
+            //sheet.properties.SetFloat("_MaxDistance", settings.maxDistance);
 
 
-            context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
+            //context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
+
+            //// Test
+            context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 1);
         }
     }
 
@@ -129,14 +128,17 @@ namespace Volumetric
             materialVolumes.Remove(materialVolume);
         }
 
-        private void SetProperties()
+        private void SetProperties(PropertySheet sheet)
         {
+            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
+            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
+
             constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
             compute.SetTexture(constantVolumeKernel, materialVolumeAId, materialVolume_A);
             compute.SetTexture(constantVolumeKernel, materialVolumeBId, materialVolume_B);
         }
 
-        private void WriteMaterialVolume()
+        private void WriteMaterialVolume(CommandBuffer commandBuffer)
         {
             for (int i = 0; i < materialVolumes.Count; i++)
             {

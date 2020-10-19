@@ -15,7 +15,7 @@ namespace UnityEngine.Rendering.PostProcessing
         /// </summary>
         public MaterialPropertyBlock properties { get; private set; }
 
-        internal Material material { get; private set; }
+        public Material material { get; private set; }
 
         internal PropertySheet(Material material)
         {
