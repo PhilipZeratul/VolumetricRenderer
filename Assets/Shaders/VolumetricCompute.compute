@@ -1,25 +1,49 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel ClearAllVolumes
 #pragma kernel WriteMaterialVolumeConstant
-#pragma kernel WriteScatterVolume
+#pragma kernel WriteScatterVolumeDir
 
-RWTexture3D<float4> _MaterialVolume_A;
-RWTexture3D<float4> _MaterialVolume_B;
-RWTexture3D<float4> _ScatterVolume;
+#define PI 3.1415926535
+
+RWTexture3D<float4> _MaterialVolume_A; // RGB: Scattering Coef, A: Absorption
+RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
+RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
 float _PhaseG;
 
-[numthreads(8 ,8, 8)]
-void WriteMaterialVolumeConstant(uint3 id : SV_DispatchThreadID)
+float3 _LightColor;
+float3 _LightDir;
+float3 _ViewDir;
+
+[numthreads(8, 8, 8)]
+void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 {
-    _MaterialVolume_A[id.xyz] = float4(_ScatteringCoef, _AbsorptionCoef);
-    _MaterialVolume_B[id.xyz] = _PhaseG;
+    _MaterialVolume_A[pos] = 0;
+    _MaterialVolume_B[pos] = 0;
+    _ScatterVolume[pos] = 0;
+}
+
+[numthreads(8 ,8, 8)]
+void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
+{
+    _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
+    _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
+}
+
+void PhaseFunction(float g, float cosTheta)
+{
+    float gSquared = g * g;
+    float hg = (1 - gSquared) / pow(1 + gSquared - 2.0 * g * cosTheta, 1.5) / 4.0 / PI;
+    return hg;
 }
 
 [numthreads(8, 8, 8)]
-void WriteScatterVolume(uint3 id : SV_DispatchThreadID)
+void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    _MaterialVolume_A[id.xyz] = float4(_ScatteringCoef, _AbsorptionCoef);
-    _MaterialVolume_B[id.xyz] = _PhaseG;
+    float g = _MaterialVolume_B[pos].r;
+    float cosTheta = dot(_ViewDir, _LightDir);
+
+    _ScatterVolume[pos] = PhaseFunction(g, cosTheta) * _LightColor;
 }

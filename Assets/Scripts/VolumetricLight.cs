@@ -8,10 +8,14 @@ namespace Volumetric
     [RequireComponent(typeof(Light))]
     public class VolumetricLight : MonoBehaviour
     {
+        [HideInInspector]
+        public Light theLight;
+
         private VolumetricRenderer volumetricRenderer;
 
         private void OnEnable()
         {
+            theLight = GetComponent<Light>();
             StartCoroutine(nameof(RegisterCoroutine));
         }
 

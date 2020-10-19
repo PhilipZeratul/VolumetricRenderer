@@ -26,6 +26,13 @@ namespace Volumetric
         private Vector3[] frustumCorners = new Vector3[4];
         private Vector4[] screenTriangleCorners = new Vector4[3];
 
+        private const int volumeWidth = 160;
+        private const int volumeHeight = 88;
+        private const int volumeDepth = 64;
+        private const int dispatchWidth = volumeWidth / 8;
+        private const int dispatchHeight = volumeHeight / 8;
+        private const int dispatchDepth = volumeDepth / 8;
+
         public override void Init()
         {
             CreateVolumes();
@@ -39,6 +46,8 @@ namespace Volumetric
             shader = context.resources.shaders.volumetric;
             compute = context.resources.computeShaders.volumetric;
             PropertySheet sheet = context.propertySheets.Get(shader);
+
+            ClearAllVolumes(context.command);
 
             SetPropertyMaterialVolume(sheet);
             WriteMaterialVolume(context.command);
@@ -66,6 +75,12 @@ namespace Volumetric
             //// Test
             context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 1);
         }
+
+        private void ClearAllVolumes(CommandBuffer command)
+        {
+            int clearKernel = compute.FindKernel("ClearAllVolumes");
+            command.DispatchCompute(compute, clearKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+        }
     }
 
     // Material Volume
@@ -75,10 +90,6 @@ namespace Volumetric
         private RenderTargetIdentifier materialVolumeATargetId;
         private RenderTexture materialVolume_B; // R: Phase g, G: Global emissive intensity, B: Ambient intensity, A: Water droplet density
         private RenderTargetIdentifier materialVolumeBTargetId;
-
-        private const int volumeWidth = 160;
-        private const int volumeHeight = 88;
-        private const int volumeDepth = 64;
 
         private readonly int materialVolumeAId = Shader.PropertyToID("_MaterialVolume_A");
         private readonly int materialVolumeBId = Shader.PropertyToID("_MaterialVolume_B");
@@ -139,7 +150,7 @@ namespace Volumetric
                         commandBuffer.SetComputeVectorParam(compute, scatteringCoefId, materialVolumes[i].scatteringCoef);
                         commandBuffer.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].absorptionCoef);
                         commandBuffer.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
-                        commandBuffer.DispatchCompute(compute, constantVolumeKernel, volumeWidth / 8, volumeHeight / 8, volumeDepth / 8);
+                        commandBuffer.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
                     case VolumetricMaterialVolume.VolumeType.Box:
                         break;
@@ -167,7 +178,11 @@ namespace Volumetric
         private RenderTargetIdentifier scatterVolumeTargetId;
 
         private readonly int scatterVolumeId = Shader.PropertyToID("_ScatterVolume");
-        private int scatterVolumeKernel;
+        private readonly int lightColorId = Shader.PropertyToID("_LightColor");
+        private readonly int lightDirId = Shader.PropertyToID("_LightDir");
+        private readonly int viewDirId = Shader.PropertyToID("_ViewDir");
+
+        private int scatterVolumeDirKernel;
 
         private List<VolumetricLight> lights = new List<VolumetricLight>();
 
@@ -186,17 +201,40 @@ namespace Volumetric
 
         private void WriteScatterVolume(CommandBuffer command)
         {
+            for (int i = 0; i < lights.Count; i++)
+            {
+                Color lightColor = lights[i].theLight.color * lights[i].theLight.intensity;
+                lightColor.r = Mathf.Pow(lightColor.r, 2.2f);
+                lightColor.g = Mathf.Pow(lightColor.g, 2.2f);
+                lightColor.b = Mathf.Pow(lightColor.b, 2.2f);
 
+                command.SetComputeVectorParam(compute, lightColorId, lightColor);
+                command.SetComputeVectorParam(compute, lightDirId, lights[i].theLight.transform.forward);
+                command.SetComputeVectorParam(compute, viewDirId, camera.transform.forward);
+
+                switch (lights[i].theLight.type)
+                {
+                    case LightType.Directional:
+                        command.DispatchCompute(compute, scatterVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+                        break;
+                    case LightType.Spot:
+                        break;
+                    case LightType.Point:
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         private void SetPropertyScatterVolume(PropertySheet sheet)
         {
             sheet.material.SetTexture(scatterVolumeId, scatterVolume);
 
-            scatterVolumeKernel = compute.FindKernel("WriteScatterVolume");
-            compute.SetTexture(scatterVolumeKernel, materialVolumeAId, materialVolume_A);
-            compute.SetTexture(scatterVolumeKernel, materialVolumeBId, materialVolume_B);
-            compute.SetTexture(scatterVolumeKernel, scatterVolumeId, scatterVolume);
+            scatterVolumeDirKernel = compute.FindKernel("WriteScatterVolumeDir");
+            compute.SetTexture(scatterVolumeDirKernel, materialVolumeAId, materialVolume_A);
+            compute.SetTexture(scatterVolumeDirKernel, materialVolumeBId, materialVolume_B);
+            compute.SetTexture(scatterVolumeDirKernel, scatterVolumeId, scatterVolume);
         }
     }
 }
