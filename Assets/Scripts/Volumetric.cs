@@ -40,8 +40,11 @@ namespace Volumetric
             compute = context.resources.computeShaders.volumetric;
             PropertySheet sheet = context.propertySheets.Get(shader);
 
-            SetProperties(sheet);
+            SetPropertyMaterialVolume(sheet);
             WriteMaterialVolume(context.command);
+
+            SetPropertyScatterVolume(sheet);
+            WriteScatterVolume(context.command);
 
             //camera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, frustumCorners);
 
@@ -65,15 +68,13 @@ namespace Volumetric
         }
     }
 
-    // Volume
+    // Material Volume
     public partial class VolumetricRenderer
     {
         private RenderTexture materialVolume_A; // RGB: Scattering, A: Absorption
-        private RenderTargetIdentifier materialVolumeID_A;
+        private RenderTargetIdentifier materialVolumeATargetId;
         private RenderTexture materialVolume_B; // R: Phase g, G: Global emissive intensity, B: Ambient intensity, A: Water droplet density
-        private RenderTargetIdentifier materialVolumeID_B;
-        private RenderTexture scatterVolume; // RGB: Scattering, A: Transmittance
-        private RenderTargetIdentifier scatterVolumeID;
+        private RenderTargetIdentifier materialVolumeBTargetId;
 
         private const int volumeWidth = 160;
         private const int volumeHeight = 88;
@@ -91,9 +92,9 @@ namespace Volumetric
 
         private void CreateVolumes()
         {
-            CreateVolume(ref materialVolume_A, ref materialVolumeID_A, "Material Volume A", RenderTextureFormat.ARGBInt);
-            CreateVolume(ref materialVolume_B, ref materialVolumeID_B, "Material Volume B", RenderTextureFormat.ARGBInt);
-            CreateVolume(ref scatterVolume, ref scatterVolumeID, "Scatter  Volume", RenderTextureFormat.ARGBHalf);
+            CreateVolume(ref materialVolume_A, ref materialVolumeATargetId, "Material Volume A", RenderTextureFormat.ARGBHalf);
+            CreateVolume(ref materialVolume_B, ref materialVolumeBTargetId, "Material Volume B", RenderTextureFormat.ARGBHalf);
+            CreateVolume(ref scatterVolume, ref scatterVolumeTargetId, "Scatter  Volume", RenderTextureFormat.ARGBHalf);
         }
 
         private void CreateVolume(ref RenderTexture volume, ref RenderTargetIdentifier id, string name, RenderTextureFormat format,
@@ -128,16 +129,6 @@ namespace Volumetric
             materialVolumes.Remove(materialVolume);
         }
 
-        private void SetProperties(PropertySheet sheet)
-        {
-            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
-            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
-
-            constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
-            compute.SetTexture(constantVolumeKernel, materialVolumeAId, materialVolume_A);
-            compute.SetTexture(constantVolumeKernel, materialVolumeBId, materialVolume_B);
-        }
-
         private void WriteMaterialVolume(CommandBuffer commandBuffer)
         {
             for (int i = 0; i < materialVolumes.Count; i++)
@@ -156,6 +147,56 @@ namespace Volumetric
                         break;
                 }
             }
+        }
+    
+        private void SetPropertyMaterialVolume(PropertySheet sheet)
+        {
+            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
+            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
+
+            constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
+            compute.SetTexture(constantVolumeKernel, materialVolumeAId, materialVolume_A);
+            compute.SetTexture(constantVolumeKernel, materialVolumeBId, materialVolume_B);
+        }
+    }
+
+    // In-Scatter Volume
+    public partial class VolumetricRenderer
+    {
+        private RenderTexture scatterVolume; // RGB: Scattering, A: Transmittance
+        private RenderTargetIdentifier scatterVolumeTargetId;
+
+        private readonly int scatterVolumeId = Shader.PropertyToID("_ScatterVolume");
+        private int scatterVolumeKernel;
+
+        private List<VolumetricLight> lights = new List<VolumetricLight>();
+
+        public void RegisterLight(VolumetricLight light)
+        {
+            if (!lights.Contains(light))
+            {
+                lights.Add(light);
+            }
+        }
+
+        public void UnregisterLight(VolumetricLight light)
+        {
+            lights.Remove(light);
+        }
+
+        private void WriteScatterVolume(CommandBuffer command)
+        {
+
+        }
+
+        private void SetPropertyScatterVolume(PropertySheet sheet)
+        {
+            sheet.material.SetTexture(scatterVolumeId, scatterVolume);
+
+            scatterVolumeKernel = compute.FindKernel("WriteScatterVolume");
+            compute.SetTexture(scatterVolumeKernel, materialVolumeAId, materialVolume_A);
+            compute.SetTexture(scatterVolumeKernel, materialVolumeBId, materialVolume_B);
+            compute.SetTexture(scatterVolumeKernel, scatterVolumeId, scatterVolume);
         }
     }
 }

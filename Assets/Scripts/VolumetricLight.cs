@@ -5,32 +5,9 @@ using UnityEngine.Rendering.PostProcessing;
 
 namespace Volumetric
 {
-    [ExecuteInEditMode]
-    public class VolumetricMaterialVolume : MonoBehaviour
+    [RequireComponent(typeof(Light))]
+    public class VolumetricLight : MonoBehaviour
     {
-        public enum VolumeType
-        {
-            Constant,
-            Box
-        }
-
-        public enum BlendType
-        {
-            Additive,
-            AlphaBlend
-        }
-
-        public VolumeType volumeType;
-        public BlendType blendType;
-
-        [Space]
-        public Color scatteringCoef;
-        public float absorptionCoef;
-        public float phaseG;
-        // Global emissive intensity
-        // Ambient intensity
-        // Water droplet density
-
         private VolumetricRenderer volumetricRenderer;
 
         private void OnEnable()
@@ -55,7 +32,7 @@ namespace Volumetric
                     volumetricRenderer = bundleRef.bundle.renderer as VolumetricRenderer;
                     if (volumetricRenderer != null)
                     {
-                        volumetricRenderer.RegisterMaterialVolume(this);
+                        volumetricRenderer.RegisterLight(this);
                     }
                 }
             }
@@ -65,7 +42,7 @@ namespace Volumetric
         {
             if (volumetricRenderer != null)
             {
-                volumetricRenderer.UnregisterMaterialVolume(this);
+                volumetricRenderer.UnregisterLight(this);
             }
         }
     }

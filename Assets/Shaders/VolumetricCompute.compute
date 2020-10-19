@@ -1,15 +1,24 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel WriteMaterialVolumeConstant
+#pragma kernel WriteScatterVolume
 
 RWTexture3D<float4> _MaterialVolume_A;
 RWTexture3D<float4> _MaterialVolume_B;
+RWTexture3D<float4> _ScatterVolume;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
 float _PhaseG;
 
-[numthreads(8,8,8)]
+[numthreads(8 ,8, 8)]
 void WriteMaterialVolumeConstant(uint3 id : SV_DispatchThreadID)
+{
+    _MaterialVolume_A[id.xyz] = float4(_ScatteringCoef, _AbsorptionCoef);
+    _MaterialVolume_B[id.xyz] = _PhaseG;
+}
+
+[numthreads(8, 8, 8)]
+void WriteScatterVolume(uint3 id : SV_DispatchThreadID)
 {
     _MaterialVolume_A[id.xyz] = float4(_ScatteringCoef, _AbsorptionCoef);
     _MaterialVolume_B[id.xyz] = _PhaseG;
