@@ -47,8 +47,8 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   maxSteps:
-    overrideState: 0
+    overrideState: 1
     value: 50
   maxDistance:
-    overrideState: 0
+    overrideState: 1
     value: 10

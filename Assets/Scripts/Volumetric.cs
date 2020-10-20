@@ -40,6 +40,7 @@ namespace Volumetric
 
         public override void Render(PostProcessRenderContext context)
         {
+            context.command.BeginSample("Volumetric");
             context.command.Clear();
 
             camera = context.camera;
@@ -47,6 +48,7 @@ namespace Volumetric
             compute = context.resources.computeShaders.volumetric;
             PropertySheet sheet = context.propertySheets.Get(shader);
 
+            SetPropertyClearVolume();
             ClearAllVolumes(context.command);
 
             SetPropertyMaterialVolume(sheet);
@@ -74,11 +76,25 @@ namespace Volumetric
 
             //// Test
             context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 1);
+            context.command.EndSample("Volumetric");
+        }
+    }
+
+    // Misc
+    public partial class VolumetricRenderer
+    {
+        private int clearKernel;
+
+        private void SetPropertyClearVolume()
+        {
+            clearKernel = compute.FindKernel("ClearAllVolumes");
+            compute.SetTexture(clearKernel, materialVolumeAId, materialVolume_A);
+            compute.SetTexture(clearKernel, materialVolumeBId, materialVolume_B);
+            compute.SetTexture(clearKernel, scatterVolumeId, scatterVolume);
         }
 
         private void ClearAllVolumes(CommandBuffer command)
         {
-            int clearKernel = compute.FindKernel("ClearAllVolumes");
             command.DispatchCompute(compute, clearKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
@@ -140,6 +156,16 @@ namespace Volumetric
             materialVolumes.Remove(materialVolume);
         }
 
+        private void SetPropertyMaterialVolume(PropertySheet sheet)
+        {
+            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
+            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
+
+            constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
+            compute.SetTexture(constantVolumeKernel, materialVolumeAId, materialVolume_A);
+            compute.SetTexture(constantVolumeKernel, materialVolumeBId, materialVolume_B);
+        }
+
         private void WriteMaterialVolume(CommandBuffer commandBuffer)
         {
             for (int i = 0; i < materialVolumes.Count; i++)
@@ -158,16 +184,6 @@ namespace Volumetric
                         break;
                 }
             }
-        }
-    
-        private void SetPropertyMaterialVolume(PropertySheet sheet)
-        {
-            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
-            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
-
-            constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
-            compute.SetTexture(constantVolumeKernel, materialVolumeAId, materialVolume_A);
-            compute.SetTexture(constantVolumeKernel, materialVolumeBId, materialVolume_B);
         }
     }
 
@@ -199,6 +215,16 @@ namespace Volumetric
             lights.Remove(light);
         }
 
+        private void SetPropertyScatterVolume(PropertySheet sheet)
+        {
+            sheet.material.SetTexture(scatterVolumeId, scatterVolume);
+
+            scatterVolumeDirKernel = compute.FindKernel("WriteScatterVolumeDir");
+            compute.SetTexture(scatterVolumeDirKernel, materialVolumeAId, materialVolume_A);
+            compute.SetTexture(scatterVolumeDirKernel, materialVolumeBId, materialVolume_B);
+            compute.SetTexture(scatterVolumeDirKernel, scatterVolumeId, scatterVolume);
+        }
+
         private void WriteScatterVolume(CommandBuffer command)
         {
             for (int i = 0; i < lights.Count; i++)
@@ -225,16 +251,6 @@ namespace Volumetric
                         break;
                 }
             }
-        }
-
-        private void SetPropertyScatterVolume(PropertySheet sheet)
-        {
-            sheet.material.SetTexture(scatterVolumeId, scatterVolume);
-
-            scatterVolumeDirKernel = compute.FindKernel("WriteScatterVolumeDir");
-            compute.SetTexture(scatterVolumeDirKernel, materialVolumeAId, materialVolume_A);
-            compute.SetTexture(scatterVolumeDirKernel, materialVolumeBId, materialVolume_B);
-            compute.SetTexture(scatterVolumeDirKernel, scatterVolumeId, scatterVolume);
         }
     }
 }
