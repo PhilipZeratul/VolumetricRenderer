@@ -108,7 +108,8 @@
             };
 
             TEXTURE3D_SAMPLER3D(_MaterialVolume_A, sampler_MaterialVolume_A);
-            TEXTURE3D(_MaterialVolume_B);
+            TEXTURE3D_SAMPLER3D(_MaterialVolume_B, sampler_MaterialVolume_B);
+            TEXTURE3D_SAMPLER3D(_ScatterVolume, sampler_ScatterVolume);
 
             Varyings Vert(Attributes v)
             {
@@ -125,7 +126,7 @@
 
             float4 Frag(Varyings IN) : SV_Target
             {
-                float4 color = SAMPLE_TEXTURE3D(_MaterialVolume_A, sampler_MaterialVolume_A, float3(IN.uv, 0));
+                float4 color = SAMPLE_TEXTURE3D(_ScatterVolume, sampler_ScatterVolume, float3(IN.uv, 0));
                 //color = 1;
                 return color;
             }

@@ -1,13 +1,14 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel ClearAllVolumes
+﻿#pragma kernel ClearAllVolumes
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteScatterVolumeDir
+#pragma kernel Accumulation
 
 #define PI 3.1415926535
 
 RWTexture3D<float4> _MaterialVolume_A; // RGB: Scattering Coef, A: Absorption
 RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
+RWTexture2D<float4> _AccumulationTex;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -17,12 +18,16 @@ float3 _LightColor;
 float3 _LightDir;
 float3 _ViewDir;
 
+int _VolumeDepth;
+float _VolumeDistance;
+
 [numthreads(8, 8, 8)]
 void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 {
     _MaterialVolume_A[pos] = 0;
     _MaterialVolume_B[pos] = 0;
     _ScatterVolume[pos] = 0;
+    _AccumulationTex[pos.xy] = 0;
 }
 
 [numthreads(8 ,8, 8)]
@@ -39,15 +44,54 @@ float PhaseFunction(float g, float cosTheta)
     return hg;
 }
 
+float Rgb2Gray(float3 c)
+{
+    float gray = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+    return gray;
+}
+
 [numthreads(8, 8, 8)]
 void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    float phaseG = _MaterialVolume_B[pos].r;
-    float cosTheta = dot(_ViewDir, _LightDir);
+    // TODO: Sample shadow.
+    float shadow = 1;
 
-    float3 inScatter = PhaseFunction(phaseG, cosTheta) * _LightColor;
-    float extinction = 0.1;
+    float4 materialA = _MaterialVolume_A[pos];
+    float4 materialB = _MaterialVolume_B[pos];
+
+    float3 scatterCoef = materialA.rgb;
+    float3 absorptCoef = materialA.a;
+    float phaseG = materialB.r;
+
+    float cosTheta = dot(_ViewDir, -_LightDir);
+
+    float3 inScatter = shadow * PhaseFunction(phaseG, cosTheta) * _LightColor * scatterCoef;
+    float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
 
     _ScatterVolume[pos] = float4(inScatter, extinction);
     //_ScatterVolume[pos] = 1;
+}
+
+[numthreads(8, 8, 8)]
+void Accumulation(uint3 pos : SV_DispatchThreadID)
+{
+    float3 accumuLight = 0;
+    float transmittance = 0;
+
+    for (int i = 0; i < _VolumeDepth; i++)
+    {
+        float4 materialA = _MaterialVolume_A[pos];
+        float4 scatterVolume = _ScatterVolume[pos];
+        float3 scatterCoef = materialA.rgb;
+        float3 inScatter = scatterVolume.rgb;
+        float3 extinction = scatterVolume.a;
+
+        float stepSize = 
+
+        transmittance *= exp(extinction * stepSize)
+        accumuLight += inScatter * scatterCoef *
+
+        _AccumulationTex[pos.xy] 
+
+    }
 }
