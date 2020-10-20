@@ -5,6 +5,7 @@ using UnityEngine.Rendering.PostProcessing;
 
 namespace Volumetric
 {
+    [ExecuteInEditMode]
     [RequireComponent(typeof(Light))]
     public class VolumetricLight : MonoBehaviour
     {
