@@ -41,7 +41,6 @@ namespace Volumetric
         public override void Render(PostProcessRenderContext context)
         {
             context.command.BeginSample("Volumetric");
-            context.command.Clear();
 
             camera = context.camera;
             shader = context.resources.shaders.volumetric;

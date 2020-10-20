@@ -13,24 +13,8 @@ MonoBehaviour:
   m_Name: PostProcessing Profile
   m_EditorClassIdentifier: 
   settings:
-  - {fileID: 114997943067577898}
---- !u!114 &114864427908567668
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
-  m_Name: VolumetricSettings
-  m_EditorClassIdentifier: Assembly-CSharp::VolumetricSettings
-  active: 1
-  enabled:
-    overrideState: 1
-    value: 1
---- !u!114 &114997943067577898
+  - {fileID: 114013688248353872}
+--- !u!114 &114013688248353872
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
@@ -47,8 +31,24 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   maxSteps:
-    overrideState: 1
+    overrideState: 0
     value: 50
   maxDistance:
-    overrideState: 1
+    overrideState: 0
     value: 10
+--- !u!114 &114864427908567668
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: VolumetricSettings
+  m_EditorClassIdentifier: Assembly-CSharp::VolumetricSettings
+  active: 1
+  enabled:
+    overrideState: 1
+    value: 1
