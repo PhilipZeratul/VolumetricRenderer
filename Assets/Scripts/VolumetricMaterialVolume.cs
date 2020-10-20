@@ -25,7 +25,9 @@ namespace Volumetric
 
         [Space]
         public Color scatteringCoef;
+        [Range(0.0f, 1.0f)]
         public float absorptionCoef;
+        [Range(0.0f, 1.0f)]
         public float phaseG;
         // Global emissive intensity
         // Ambient intensity

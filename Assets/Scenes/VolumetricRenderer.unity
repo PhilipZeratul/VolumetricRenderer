@@ -145,8 +145,8 @@ MonoBehaviour:
   volumeType: 0
   blendType: 0
   scatteringCoef: {r: 0.4716981, g: 0.2295363, b: 0.21137415, a: 0}
-  absorptionCoef: 0.78
-  phaseG: 1.14
+  absorptionCoef: 0.371
+  phaseG: 0.252
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0
@@ -243,7 +243,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fab809b9726665140ace5c2dc2da4b1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  theLight: {fileID: 0}
+  theLight: {fileID: 170076734}
 --- !u!1 &398040130
 GameObject:
   m_ObjectHideFlags: 0

@@ -42,11 +42,12 @@ float PhaseFunction(float g, float cosTheta)
 [numthreads(8, 8, 8)]
 void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    float g = _MaterialVolume_B[pos].r;
+    float phaseG = _MaterialVolume_B[pos].r;
     float cosTheta = dot(_ViewDir, _LightDir);
 
-    float3 inScatter = PhaseFunction(g, cosTheta) * _LightColor;
-    float extinction = 0;
+    float3 inScatter = PhaseFunction(phaseG, cosTheta) * _LightColor;
+    float extinction = 0.1;
 
     _ScatterVolume[pos] = float4(inScatter, extinction);
+    //_ScatterVolume[pos] = 1;
 }

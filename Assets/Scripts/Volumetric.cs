@@ -169,10 +169,16 @@ namespace Volumetric
         {
             for (int i = 0; i < materialVolumes.Count; i++)
             {
+                
+
                 switch (materialVolumes[i].volumeType)
                 {
                     case VolumetricMaterialVolume.VolumeType.Constant:
-                        commandBuffer.SetComputeVectorParam(compute, scatteringCoefId, materialVolumes[i].scatteringCoef);
+                        Debug.LogFormat("{0}, {1}, {2}, {3}, {4}", materialVolumes[i].scatteringCoef.r, materialVolumes[i].scatteringCoef.g, materialVolumes[i].scatteringCoef.b,
+                                materialVolumes[i].absorptionCoef, materialVolumes[i].phaseG);
+
+
+                        commandBuffer.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].scatteringCoef));
                         commandBuffer.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].absorptionCoef);
                         commandBuffer.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
                         commandBuffer.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
@@ -184,12 +190,18 @@ namespace Volumetric
                 }
             }
         }
+
+        // Unity will do gamma correction if set color directly.
+        private Vector3 Color2Vector(Color color)
+        {
+            return new Vector3(color.r, color.g, color.b);
+        }
     }
 
     // In-Scatter Volume
     public partial class VolumetricRenderer
     {
-        private RenderTexture scatterVolume; // RGB: Scattering, A: Transmittance
+        private RenderTexture scatterVolume; // RGB: Scattering, A: Extinction
         private RenderTargetIdentifier scatterVolumeTargetId;
 
         private readonly int scatterVolumeId = Shader.PropertyToID("_ScatterVolume");
