@@ -1,6 +1,7 @@
 ﻿#pragma enable_d3d11_debug_symbols
 
 #pragma kernel ClearAllVolumes
+#pragma kernel WriteShadowVolume
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel Accumulation
@@ -15,6 +16,13 @@ void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
     _MaterialVolume_B[pos] = 0;
     _ScatterVolume[pos] = 0;
     _AccumulationTex[pos.xy] = 0;
+}
+
+[numthreads(8, 8, 8)]
+void WriteShadowVolume(uint3 pos : SV_DispatchThreadID)
+{
+    //_MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
+    //_MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
 }
 
 [numthreads(8 ,8, 8)]
@@ -62,6 +70,7 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
         float3 inScatter = scatterVolume.rgb;
         float extinction = scatterVolume.a;
         
+        // TODO: Simplify stepLength calculaiton?
         float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
         float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
         float stepLength = nextWorldPos.z - curWorldPos.z;

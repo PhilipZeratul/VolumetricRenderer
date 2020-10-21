@@ -40,6 +40,7 @@ namespace Volumetric
 
         public override void Init()
         {
+            CreateShadowVolume();
             CreateMaterialVolumes();
             CreateScatterVolume();
             CreateAccumulationTex();
@@ -55,6 +56,9 @@ namespace Volumetric
             PropertySheet sheet = context.propertySheets.Get(shader);
 
             CalculateMatrices();
+
+            SetPropertyShadowVolume(context.command);
+            WriteShadowVolume(context.command);
 
             SetPropertyClearVolume(context.command);
             ClearAllVolumes(context.command);
@@ -170,7 +174,34 @@ namespace Volumetric
 #endif
     }
 
-    // Material Volume
+    // Shadow Volume
+    public partial class VolumetricRenderer
+    {
+        private RenderTexture shadowVolume; // R: Visibility
+        private RenderTargetIdentifier shadowVolumeTargetId;
+
+        private readonly int shadowVolumeId = Shader.PropertyToID("_ShadowVolume");
+
+        private int shadowVolumeKernel;
+
+        private void CreateShadowVolume()
+        {
+            CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume");
+        }
+
+        private void SetPropertyShadowVolume(CommandBuffer command)
+        {
+            shadowVolumeKernel = compute.FindKernel("WriteShadowVolume");
+
+        }
+
+        private void WriteShadowVolume(CommandBuffer command)
+        {
+
+        }
+    }
+
+        // Material Volume
     public partial class VolumetricRenderer
     {
         private RenderTexture materialVolume_A; // RGB: Scattering, A: Absorption
