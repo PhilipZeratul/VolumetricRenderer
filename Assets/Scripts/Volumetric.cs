@@ -57,8 +57,8 @@ namespace Volumetric
 
             CalculateMatrices();
 
-            SetPropertyShadowVolume(context.command);
-            WriteShadowVolume(context.command);
+            SetPropertyShadowVolume();
+            WriteShadowVolume();
 
             SetPropertyClearVolume(context.command);
             ClearAllVolumes(context.command);
@@ -177,27 +177,46 @@ namespace Volumetric
     // Shadow Volume
     public partial class VolumetricRenderer
     {
+        public event Action WriteShadowVolumeEvent;
+        public CommandBuffer shadowCommand;
+
         private RenderTexture shadowVolume; // R: Visibility
         private RenderTargetIdentifier shadowVolumeTargetId;
+        private RenderTargetIdentifier shadowMapTextureTargetId;
 
         private readonly int shadowVolumeId = Shader.PropertyToID("_ShadowVolume");
+        private readonly int shadowMapTextureId = Shader.PropertyToID("_ShadowMapTexture");
 
-        private int shadowVolumeKernel;
+        private int shadowVolumeDirKernel;
 
         private void CreateShadowVolume()
         {
-            CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume");
+            CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.R16);
+            shadowMapTextureTargetId = new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive);
+            shadowCommand = new CommandBuffer()
+            {
+                name = "Shadow Command"
+            };
         }
 
-        private void SetPropertyShadowVolume(CommandBuffer command)
+        private void SetPropertyShadowVolume()
         {
-            shadowVolumeKernel = compute.FindKernel("WriteShadowVolume");
+            shadowVolumeDirKernel = compute.FindKernel("WriteShadowVolumeDir");
 
+            shadowCommand.Clear();
+            shadowCommand.SetComputeTextureParam(compute, shadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
+            
         }
 
-        private void WriteShadowVolume(CommandBuffer command)
+        private void WriteShadowVolume()
         {
+            WriteShadowVolumeEvent?.Invoke();
+        }
 
+        public void DirLightShadow()
+        {
+            shadowCommand.SetComputeTextureParam(compute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
+            shadowCommand.DispatchCompute(compute, shadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
 

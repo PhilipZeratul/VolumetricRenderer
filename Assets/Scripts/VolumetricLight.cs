@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.PostProcessing;
 
 namespace Volumetric
@@ -9,6 +10,8 @@ namespace Volumetric
     [RequireComponent(typeof(Light))]
     public class VolumetricLight : MonoBehaviour
     {
+        public bool shouldCastShadow = false;
+
         [HideInInspector]
         public Light theLight;
 
@@ -37,6 +40,8 @@ namespace Volumetric
                     if (volumetricRenderer != null)
                     {
                         volumetricRenderer.RegisterLight(this);
+                        theLight.AddCommandBuffer(LightEvent.AfterShadowMap, volumetricRenderer.shadowCommand);
+                        volumetricRenderer.WriteShadowVolumeEvent += WriteShadowVolume;
                     }
                 }
             }
@@ -47,6 +52,25 @@ namespace Volumetric
             if (volumetricRenderer != null)
             {
                 volumetricRenderer.UnregisterLight(this);
+                theLight.RemoveCommandBuffer(LightEvent.AfterShadowMap, volumetricRenderer.shadowCommand);
+                volumetricRenderer.WriteShadowVolumeEvent -= WriteShadowVolume;
+            }
+        }
+
+        // TODO: Should Cast Shadow
+        private void WriteShadowVolume()
+        {
+            switch (theLight.type)
+            {
+                case LightType.Directional:
+                    volumetricRenderer.DirLightShadow();
+                    break;
+                case LightType.Point:
+                    break;
+                case LightType.Spot:
+                    break;
+                default:
+                    break;
             }
         }
     }

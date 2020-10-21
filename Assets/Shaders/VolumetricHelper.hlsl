@@ -4,10 +4,13 @@
 #define PI 3.1415926535
 
 // Parameters
+RWTexture3D<float> _ShadowVolume; // R: Visibility
 RWTexture3D<float4> _MaterialVolume_A; // RGB: Scattering Coef, A: Absorption
 RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
-RWTexture2D<float4> _AccumulationTex;
+RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
+
+Texture2D<float4> _ShadowMapTexture;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;

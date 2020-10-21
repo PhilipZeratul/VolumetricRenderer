@@ -1,7 +1,7 @@
 ﻿#pragma enable_d3d11_debug_symbols
 
 #pragma kernel ClearAllVolumes
-#pragma kernel WriteShadowVolume
+#pragma kernel WriteShadowVolumeDir
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel Accumulation
@@ -19,17 +19,16 @@ void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 }
 
 [numthreads(8, 8, 8)]
-void WriteShadowVolume(uint3 pos : SV_DispatchThreadID)
+void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    //_MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
-    //_MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
+    _ShadowVolume[pos] = 1;
 }
 
 [numthreads(8 ,8, 8)]
 void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
 {
-    _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
-    _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
+    _MaterialVolume_A[pos] += float4(_ScatteringCoef, _AbsorptionCoef);
+    _MaterialVolume_B[pos] += float4(_PhaseG, 0, 0, 0);
 }
 
 [numthreads(8, 8, 8)]
@@ -50,7 +49,7 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
     float3 inScatter = shadow * PhaseFunction(phaseG, cosTheta) * _LightColor * scatterCoef;
     float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
 
-    _ScatterVolume[pos] = float4(inScatter, extinction);
+    _ScatterVolume[pos] += float4(inScatter, extinction);
 }
 
 [numthreads(8, 8, 1)]
