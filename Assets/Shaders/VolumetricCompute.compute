@@ -1,26 +1,13 @@
-﻿#pragma kernel ClearAllVolumes
+﻿#pragma enable_d3d11_debug_symbols
+
+#pragma kernel ClearAllVolumes
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel Accumulation
 
-#define PI 3.1415926535
+#include "VolumetricHelper.hlsl"
 
-RWTexture3D<float4> _MaterialVolume_A; // RGB: Scattering Coef, A: Absorption
-RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
-RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
-RWTexture2D<float4> _AccumulationTex;
-
-float3 _ScatteringCoef;
-float _AbsorptionCoef;
-float _PhaseG;
-
-float3 _LightColor;
-float3 _LightDir;
-float3 _ViewDir;
-
-int _VolumeDepth;
-float _VolumeDistance;
-
+// Kernels
 [numthreads(8, 8, 8)]
 void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 {
@@ -37,19 +24,6 @@ void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
     _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
 }
 
-float PhaseFunction(float g, float cosTheta)
-{
-    float gSquared = g * g;
-    float hg = (1 - gSquared) / pow(1 + gSquared - 2.0 * g * cosTheta, 1.5) / 4.0 / PI;
-    return hg;
-}
-
-float Rgb2Gray(float3 c)
-{
-    float gray = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
-    return gray;
-}
-
 [numthreads(8, 8, 8)]
 void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
@@ -60,7 +34,7 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
     float4 materialB = _MaterialVolume_B[pos];
 
     float3 scatterCoef = materialA.rgb;
-    float3 absorptCoef = materialA.a;
+    float absorptCoef = materialA.a;
     float phaseG = materialB.r;
 
     float cosTheta = dot(_ViewDir, -_LightDir);
@@ -69,29 +43,37 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
     float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
 
     _ScatterVolume[pos] = float4(inScatter, extinction);
-    //_ScatterVolume[pos] = 1;
 }
 
-[numthreads(8, 8, 8)]
-void Accumulation(uint3 pos : SV_DispatchThreadID)
+[numthreads(8, 8, 1)]
+void Accumulation(uint2 pos : SV_DispatchThreadID)
 {
     float3 accumuLight = 0;
     float transmittance = 0;
 
-    for (int i = 0; i < _VolumeDepth; i++)
+    for (int i = 0; i < _VolumeDepth - 1; i++)
     {
-        float4 materialA = _MaterialVolume_A[pos];
-        float4 scatterVolume = _ScatterVolume[pos];
+        uint3 curPos = uint3(pos.xy, i);
+        uint3 nextPos = uint3(pos.xy, i + 1);
+
+        float4 materialA = _MaterialVolume_A[curPos];
+        float4 scatterVolume = _ScatterVolume[curPos];
         float3 scatterCoef = materialA.rgb;
         float3 inScatter = scatterVolume.rgb;
-        float3 extinction = scatterVolume.a;
+        float extinction = scatterVolume.a;
+        
+        float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
+        //float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
+        //float stepSize = distance(nextWorldPos, curWorldPos);
 
-        float stepSize = 
-
-        transmittance *= exp(extinction * stepSize)
-        accumuLight += inScatter * scatterCoef *
-
-        _AccumulationTex[pos.xy] 
-
+        //transmittance *= exp(-extinction * stepSize);
+        //accumuLight += inScatter * scatterCoef * transmittance;
     }
+
+    _AccumulationTex[pos] = float4(accumuLight, transmittance);
+
+
+
+    _AccumulationTex[pos] = FroxelPos2WorldPos(uint3(pos.xy, _VolumeDepth));
+    //_AccumulationTex[pos] = float4(pos, 0, 0);
 }

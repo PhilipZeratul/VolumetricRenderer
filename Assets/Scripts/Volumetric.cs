@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define _DEBUG
+
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -17,7 +19,7 @@ namespace Volumetric
         public FloatParameter maxDistance = new FloatParameter { value = 10f };
 
         [DisplayName("Froxel Distance"), Range(10.0f, 5000.0f)]
-        public FloatParameter froxelDistance = new FloatParameter { value = 1000.0f };
+        public FloatParameter volumeDistance = new FloatParameter { value = 1000.0f };
     }
 
     // Post Processing
@@ -57,7 +59,7 @@ namespace Volumetric
             SetPropertyClearVolume(context.command);
             ClearAllVolumes(context.command);
 
-            SetPropertyMaterialVolume(sheet, context.command);
+            SetPropertyMaterialVolume(context.command);
             WriteMaterialVolume(context.command);
 
             SetPropertyScatterVolume(sheet, context.command);
@@ -84,7 +86,10 @@ namespace Volumetric
             //context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
 
             //// Test
-            context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 1);
+#if _DEBUG
+            SetPropertyDebug(sheet);
+            RenderDebug(context, sheet);
+#endif
             context.command.EndSample("Volumetric");
         }
     }
@@ -93,9 +98,9 @@ namespace Volumetric
     public partial class VolumetricRenderer
     {
         private int clearKernel;
-        private Matrix4x4 projectionMat;
+        private Matrix4x4 froxelProjMat;
         private Matrix4x4 viewMat;
-        private Matrix4x4 invVP;
+        private Matrix4x4 invFroxelVPMat;
 
         private void SetPropertyClearVolume(CommandBuffer command)
         {
@@ -133,21 +138,36 @@ namespace Volumetric
 
         private void CalculateMatrices()
         {
-            float farClipPlane = camera.farClipPlane;
+            float froxelDistance = settings.volumeDistance;
             float nearClipPlane = camera.nearClipPlane;
             float b = 1.0f / Mathf.Tan(Mathf.Deg2Rad * camera.fieldOfView / 2.0f);
             float a = b / camera.aspect;
-            float c = farClipPlane / (farClipPlane - nearClipPlane);
-            float d = -farClipPlane * nearClipPlane / (farClipPlane - nearClipPlane);
-            projectionMat = new Matrix4x4(
+            float c = froxelDistance / (froxelDistance - nearClipPlane);
+            float d = -froxelDistance * nearClipPlane / (froxelDistance - nearClipPlane);
+            froxelProjMat = new Matrix4x4(
                 new Vector4(a, 0, 0, 0),
                 new Vector4(0, b, 0, 0),
                 new Vector4(0, 0, c, 1),
                 new Vector4(0, 0, d, 0));
 
             viewMat = Matrix4x4.TRS(-camera.transform.position, Quaternion.Inverse(camera.transform.rotation), new Vector3(1, 1, 1));
-            invVP = (projectionMat * viewMat).inverse;
+            invFroxelVPMat = (froxelProjMat * viewMat).inverse;
         }
+
+#if _DEBUG
+        private void SetPropertyDebug(PropertySheet sheet)
+        {
+            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
+            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
+            sheet.material.SetTexture(scatterVolumeId, scatterVolume);
+            sheet.material.SetTexture(accumulationTexId, accumulationTex);
+        }
+
+        private void RenderDebug(PostProcessRenderContext context, PropertySheet sheet)
+        {
+            context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 1);
+        }
+#endif
     }
 
     // Material Volume
@@ -187,11 +207,8 @@ namespace Volumetric
             materialVolumes.Remove(materialVolume);
         }
 
-        private void SetPropertyMaterialVolume(PropertySheet sheet, CommandBuffer command)
+        private void SetPropertyMaterialVolume(CommandBuffer command)
         {
-            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
-            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
-
             constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
@@ -303,28 +320,50 @@ namespace Volumetric
         private RenderTargetIdentifier accumulationTexTargetId;
 
         private readonly int accumulationTexId = Shader.PropertyToID("_AccumulationTex");
+        private readonly int volumeWidthId = Shader.PropertyToID("_VolumeWidth");
+        private readonly int volumeHeightId = Shader.PropertyToID("_VolumeHeight");
+        private readonly int volumeDepthId = Shader.PropertyToID("_VolumeDepth");
+        private readonly int nearPlaneId = Shader.PropertyToID("_NearPlane");
+        private readonly int volumeDistanceId = Shader.PropertyToID("_VolumeDistance");
+        private readonly int invFroxelVPMatId = Shader.PropertyToID("_invFroxelVPMat");
 
         private int accumulationKernel;
 
         private void CreateAccumulationTex()
         {
-            CreateVolume(ref accumulationTex, ref accumulationTexTargetId, "Accumulation Tex", RenderTextureFormat.ARGBFloat, TextureDimension.Tex2D);
+            if (accumulationTex != null)
+            {
+                GameObject.Destroy(accumulationTex);
+            }
+            accumulationTex = new RenderTexture(volumeWidth, volumeHeight, 0, RenderTextureFormat.ARGBFloat)
+            {
+                name = "Accumulation Tex",
+                filterMode = FilterMode.Bilinear,
+                dimension = TextureDimension.Tex2D,
+                enableRandomWrite = true
+            };
+            accumulationTex.Create();
+            accumulationTexTargetId = new RenderTargetIdentifier(accumulationTex);
         }
 
         private void SetPropertyAccumulation(CommandBuffer command)
         {
             accumulationKernel = compute.FindKernel("Accumulation");
+            command.SetComputeTextureParam(compute, accumulationKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, accumulationTexId, accumulationTexTargetId);
+            
+            command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
+            command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
+            command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
+            command.SetComputeFloatParam(compute, nearPlaneId, camera.nearClipPlane);
+            command.SetComputeFloatParam(compute, volumeDistanceId, settings.volumeDistance);
+            command.SetComputeMatrixParam(compute, invFroxelVPMatId, invFroxelVPMat);
         }
 
         private void Accumulate(CommandBuffer command)
         {
-            
-
-
-
-            command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+            command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
         }
     }
 }

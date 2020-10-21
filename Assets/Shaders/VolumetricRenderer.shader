@@ -110,6 +110,7 @@
             TEXTURE3D_SAMPLER3D(_MaterialVolume_A, sampler_MaterialVolume_A);
             TEXTURE3D_SAMPLER3D(_MaterialVolume_B, sampler_MaterialVolume_B);
             TEXTURE3D_SAMPLER3D(_ScatterVolume, sampler_ScatterVolume);
+            TEXTURE2D_SAMPLER2D(_AccumulationTex, sampler_AccumulationTex);
 
             Varyings Vert(Attributes v)
             {
@@ -126,7 +127,8 @@
 
             float4 Frag(Varyings IN) : SV_Target
             {
-                float4 color = SAMPLE_TEXTURE3D(_ScatterVolume, sampler_ScatterVolume, float3(IN.uv, 0));
+                //float4 color = SAMPLE_TEXTURE3D(_ScatterVolume, sampler_ScatterVolume, float3(IN.uv, 0));
+                float4 color = frac(SAMPLE_TEXTURE2D(_AccumulationTex, sampler_AccumulationTex, IN.uv));
                 //color = 1;
                 return color;
             }
