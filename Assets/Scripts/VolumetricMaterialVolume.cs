@@ -8,6 +8,9 @@ namespace Volumetric
     [ExecuteInEditMode]
     public class VolumetricMaterialVolume : MonoBehaviour
     {
+        private const float scatterScale = 0.00692f;
+        private const float absorptScale = 0.00077f;
+
         public enum VolumeType
         {
             Constant,
@@ -24,14 +27,26 @@ namespace Volumetric
         public BlendType blendType;
 
         [Space]
-        public Color scatteringCoef;
+
+        [SerializeField]
+        private Color scatteringColor;
+        [SerializeField]
+        [Range(0.00001f, 1.0f)]
+        private float absorption;
         [Range(0.0f, 1.0f)]
-        public float absorptionCoef;
-        [Range(0.0f, 1.0f)]
-        public float phaseG;
+        public float phaseG = 0.002f;
         // Global emissive intensity
         // Ambient intensity
         // Water droplet density
+
+        public Color ScatteringCoef
+        {
+            get { return scatteringColor * scatterScale; }
+        }
+        public float AbsorptionCoef
+        {
+            get { return absorption * absorptScale; }
+        }
 
         private VolumetricRenderer volumetricRenderer;
 

@@ -48,8 +48,8 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 [numthreads(8, 8, 1)]
 void Accumulation(uint2 pos : SV_DispatchThreadID)
 {
-    float3 accumuLight = 0;
-    float transmittance = 0;
+    float3 accumuLight = 0.0;
+    float transmittance = 1.0;
 
     for (int i = 0; i < _VolumeDepth - 1; i++)
     {
@@ -63,17 +63,12 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
         float extinction = scatterVolume.a;
         
         float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
-        //float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
-        //float stepSize = distance(nextWorldPos, curWorldPos);
+        float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
+        float stepLength = nextWorldPos.z - curWorldPos.z;
 
-        //transmittance *= exp(-extinction * stepSize);
-        //accumuLight += inScatter * scatterCoef * transmittance;
+        transmittance *= exp(-extinction * stepLength);
+        accumuLight += inScatter * scatterCoef * transmittance;
     }
 
     _AccumulationTex[pos] = float4(accumuLight, transmittance);
-
-
-
-    _AccumulationTex[pos] = FroxelPos2WorldPos(uint3(pos.xy, _VolumeDepth));
-    //_AccumulationTex[pos] = float4(pos, 0, 0);
 }

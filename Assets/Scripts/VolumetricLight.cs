@@ -22,8 +22,7 @@ namespace Volumetric
 
         private IEnumerator RegisterCoroutine()
         {
-            // Wait for PostProcessLayer.sortedBundles to construct.
-            yield return null;
+            yield return null; // Wait for PostProcessLayer.sortedBundles to construct.
 
             // TODO: Better way to get PostProcessLayer.
             PostProcessLayer postLayer = GameObject.FindObjectOfType<PostProcessLayer>();

@@ -128,7 +128,7 @@
             float4 Frag(Varyings IN) : SV_Target
             {
                 //float4 color = SAMPLE_TEXTURE3D(_ScatterVolume, sampler_ScatterVolume, float3(IN.uv, 0));
-                float4 color = frac(SAMPLE_TEXTURE2D(_AccumulationTex, sampler_AccumulationTex, IN.uv));
+                float4 color = SAMPLE_TEXTURE2D(_AccumulationTex, sampler_AccumulationTex, IN.uv);
                 //color = 1;
                 return color;
             }

@@ -144,9 +144,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   volumeType: 0
   blendType: 0
-  scatteringCoef: {r: 1, g: 1, b: 1, a: 0}
-  absorptionCoef: 0.371
-  phaseG: 0.252
+  scatteringColor: {r: 0.8867924, g: 0.2786036, b: 0.12967247, a: 0}
+  absorption: 0.511
+  phaseG: 0.207
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0
@@ -190,7 +190,7 @@ Light:
   serializedVersion: 8
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1
+  m_Intensity: 50
   m_Range: 10
   m_SpotAngle: 30
   m_CookieSize: 10
@@ -224,13 +224,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170076733}
-  m_LocalRotation: {x: -0.7047416, y: -0.057786357, z: 0.7047416, w: -0.057786357}
+  m_LocalRotation: {x: -0.987399, y: 0.007748012, z: -0.03220377, w: -0.15474597}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: -189.375, y: 89.99999, z: 0}
+  m_LocalEulerAnglesHint: {x: -342.176, y: 176.31401, z: 180.32098}
 --- !u!114 &170076736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -352,7 +352,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 534669902}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.64, y: 0, z: -6.07}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

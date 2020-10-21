@@ -221,8 +221,8 @@ namespace Volumetric
                 switch (materialVolumes[i].volumeType)
                 {
                     case VolumetricMaterialVolume.VolumeType.Constant:
-                        commandBuffer.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].scatteringCoef));
-                        commandBuffer.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].absorptionCoef);
+                        commandBuffer.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
+                        commandBuffer.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
                         commandBuffer.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
                         commandBuffer.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
