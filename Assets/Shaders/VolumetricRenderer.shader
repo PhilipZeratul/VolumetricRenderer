@@ -107,6 +107,7 @@
                 float2 uv : TEXCOORD0;
             };
 
+            TEXTURE2D_SAMPLER2D(_ShadowVolume, sampler_ShadowVolume);
             TEXTURE3D_SAMPLER3D(_MaterialVolume_A, sampler_MaterialVolume_A);
             TEXTURE3D_SAMPLER3D(_MaterialVolume_B, sampler_MaterialVolume_B);
             TEXTURE3D_SAMPLER3D(_ScatterVolume, sampler_ScatterVolume);

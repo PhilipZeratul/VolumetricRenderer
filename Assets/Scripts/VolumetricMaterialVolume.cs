@@ -8,6 +8,7 @@ namespace Volumetric
     [ExecuteInEditMode]
     public class VolumetricMaterialVolume : MonoBehaviour
     {
+        // TODO: 1000m?
         private const float scatterScale = 0.00692f;
         private const float absorptScale = 0.00077f;
 
@@ -29,10 +30,10 @@ namespace Volumetric
         [Space]
 
         [SerializeField]
-        private Color scatteringColor;
+        private Color scatteringColor = new Color(0.58f, 0.58f, 0.58f);
         [SerializeField]
         [Range(0.00001f, 1.0f)]
-        private float absorption;
+        private float absorption = 0.58f;
         [Range(0.0f, 1.0f)]
         public float phaseG = 0.002f;
         // Global emissive intensity

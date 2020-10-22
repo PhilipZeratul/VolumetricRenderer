@@ -58,6 +58,7 @@ float4 FroxelPos2WorldPos(uint3 froxelPos)
     float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
     clipPos *= z;
     float4 worldPos = mul(_invFroxelVPMat, clipPos);
+    worldPos /= worldPos.w;
     return worldPos;
 }
 

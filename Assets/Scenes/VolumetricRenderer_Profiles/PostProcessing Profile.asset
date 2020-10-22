@@ -36,6 +36,9 @@ MonoBehaviour:
   maxDistance:
     overrideState: 0
     value: 10
+  volumeDistance:
+    overrideState: 0
+    value: 1000
 --- !u!114 &114864427908567668
 MonoBehaviour:
   m_ObjectHideFlags: 3

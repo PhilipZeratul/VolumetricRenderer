@@ -12,6 +12,7 @@
 [numthreads(8, 8, 8)]
 void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 {
+    _ShadowVolume[pos] = 1;
     _MaterialVolume_A[pos] = 0;
     _MaterialVolume_B[pos] = 0;
     _ScatterVolume[pos] = 0;
@@ -21,7 +22,9 @@ void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 [numthreads(8, 8, 8)]
 void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    _ShadowVolume[pos] = 1;
+    float4 worldPos = FroxelPos2WorldPos(pos);
+    float visibility = SampleShadow(worldPos);
+    _ShadowVolume[pos] *= visibility;
 }
 
 [numthreads(8 ,8, 8)]
@@ -35,7 +38,7 @@ void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
 void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
     // TODO: Sample shadow.
-    float shadow = 1;
+    float visibility = _ShadowVolume[pos];
 
     float4 materialA = _MaterialVolume_A[pos];
     float4 materialB = _MaterialVolume_B[pos];
@@ -46,7 +49,7 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 
     float cosTheta = dot(_ViewDir, -_LightDir);
 
-    float3 inScatter = shadow * PhaseFunction(phaseG, cosTheta) * _LightColor * scatterCoef;
+    float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * scatterCoef;
     float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
 
     _ScatterVolume[pos] += float4(inScatter, extinction);
@@ -57,6 +60,8 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
 {
     float3 accumuLight = 0.0;
     float transmittance = 1.0;
+
+    _AccumulationTex[pos] = 1;
 
     for (int i = 0; i < _VolumeDepth - 1; i++)
     {
@@ -76,7 +81,14 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
 
         transmittance *= exp(-extinction * stepLength);
         accumuLight += inScatter * scatterCoef * transmittance;
+
+        /// Debug
+        _AccumulationTex[pos] = min(_ShadowVolume[uint3(pos.xy, i)], _AccumulationTex[pos]);
     }
 
-    _AccumulationTex[pos] = float4(accumuLight, transmittance);
+    //_AccumulationTex[pos] = float4(accumuLight, transmittance);
+
+
+    //shadow /= _VolumeDepth;
+    //_AccumulationTex[pos] = shadow.xxxx;
 }
