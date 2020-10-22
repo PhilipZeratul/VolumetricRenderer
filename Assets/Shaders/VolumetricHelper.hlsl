@@ -1,6 +1,8 @@
 #ifndef VOLUMETRIC_HELPER
 #define VOLUMETRIC_HELPER
 
+#include "HLSLSupport.cginc"
+
 #define PI 3.1415926535
 
 // Parameters
@@ -10,7 +12,8 @@ RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
-Texture2D<float4> _ShadowMapTexture;
+//Texture2D<float4> _ShadowMapTexture; SamplerComparisonState sampler_ShadowMapTexture;
+UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -38,13 +41,13 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
     return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
 }
 
-// (0, height, 0) - (width, 0, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1)
+// (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1)
 float4 FroxelPos2ClipPos(uint3 froxelPos)
 {
     float4 clipPos = 0;
-    clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth, -1.0, 1.0);
-    clipPos.y = Remap(froxelPos.y, _VolumeHeight, 0.0, -1.0, 1.0);
-    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth, 0.0, 1.0);
+    clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
+    clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
+    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
     clipPos.w = 1;
     return clipPos;
 }
@@ -65,42 +68,23 @@ float Rgb2Gray(float3 c)
 }
 
 // Shadows
-#if defined (SHADOWS_SPLIT_SPHERES)
-#define GET_CASCADE_WEIGHTS(wpos, z)    getCascadeWeights_splitSpheres(wpos)
-#else
-#define GET_CASCADE_WEIGHTS(wpos, z)    getCascadeWeights(wpos, z)
-#endif
-
-#if defined (SHADOWS_SINGLE_CASCADE)
-#define GET_SHADOW_COORDINATES(wpos,cascadeWeights) getShadowCoord_SingleCascade(wpos)
-#else
-#define GET_SHADOW_COORDINATES(wpos,cascadeWeights) getShadowCoord(wpos,cascadeWeights)
-#endif
-
-/**
- * Gets the cascade weights based on the world position of the fragment.
- * Returns a float4 with only one component set that corresponds to the appropriate cascade.
- */
-inline fixed4 getCascadeWeights(float3 wpos, float z)
-{
-    fixed4 zNear = float4(z >= _LightSplitsNear);
-    fixed4 zFar = float4(z < _LightSplitsFar);
-    fixed4 weights = zNear * zFar;
-    return weights;
-}
+float4 unity_ShadowSplitSpheres[4];
+float4 unity_ShadowSplitSqRadii;
+float4x4 unity_WorldToShadow[4];
+half4 _LightShadowData;
 
 /**
  * Gets the cascade weights based on the world position of the fragment and the poisitions of the split spheres for each cascade.
  * Returns a float4 with only one component set that corresponds to the appropriate cascade.
  */
-inline fixed4 getCascadeWeights_splitSpheres(float3 wpos)
+inline float4 getCascadeWeights_splitSpheres(float3 wpos)
 {
     float3 fromCenter0 = wpos.xyz - unity_ShadowSplitSpheres[0].xyz;
     float3 fromCenter1 = wpos.xyz - unity_ShadowSplitSpheres[1].xyz;
     float3 fromCenter2 = wpos.xyz - unity_ShadowSplitSpheres[2].xyz;
     float3 fromCenter3 = wpos.xyz - unity_ShadowSplitSpheres[3].xyz;
     float4 distances2 = float4(dot(fromCenter0, fromCenter0), dot(fromCenter1, fromCenter1), dot(fromCenter2, fromCenter2), dot(fromCenter3, fromCenter3));
-    fixed4 weights = float4(distances2 < unity_ShadowSplitSqRadii);
+    float4 weights = float4(distances2 < unity_ShadowSplitSqRadii);
     weights.yzw = saturate(weights.yzw - weights.xyz);
     return weights;
 }
@@ -109,7 +93,7 @@ inline fixed4 getCascadeWeights_splitSpheres(float3 wpos)
  * Returns the shadowmap coordinates for the given fragment based on the world position and z-depth.
  * These coordinates belong to the shadowmap atlas that contains the maps for all cascades.
  */
-inline float4 getShadowCoord(float4 wpos, fixed4 cascadeWeights)
+inline float4 getShadowCoord(float4 wpos, float4 cascadeWeights)
 {
     float3 sc0 = mul(unity_WorldToShadow[0], wpos).xyz;
     float3 sc1 = mul(unity_WorldToShadow[1], wpos).xyz;
@@ -123,30 +107,17 @@ inline float4 getShadowCoord(float4 wpos, fixed4 cascadeWeights)
     return shadowMapCoordinate;
 }
 
-/**
- * Same as the getShadowCoord; but optimized for single cascade
- */
-inline float4 getShadowCoord_SingleCascade(float4 wpos)
+float SampleShadow(float4 wpos)
 {
-    return float4(mul(unity_WorldToShadow[0], wpos).xyz, 0);
-}
-
-float SampleShadow()
-{
-    float4 wpos;
-    float3 vpos;
-
-    vpos = computeCameraSpacePosFromDepth(i);
-    wpos = mul(unity_CameraToWorld, float4(vpos, 1));
-
-    fixed4 cascadeWeights = GET_CASCADE_WEIGHTS(wpos, vpos.z);
-    float4 shadowCoord = GET_SHADOW_COORDINATES(wpos, cascadeWeights);
+    float4 cascadeWeights = getCascadeWeights_splitSpheres(wpos);
+    float4 shadowCoord = getShadowCoord(wpos, cascadeWeights);
 
     //1 tap hard shadow
-    fixed shadow = UNITY_SAMPLE_SHADOW(_ShadowMapTexture, shadowCoord);
+    //float shadow = _ShadowMapTexture.Sample(sampler_ShadowMapTexture, shadowCoord).r;
+    float shadow = UNITY_SAMPLE_SHADOW(_ShadowMapTexture, shadowCoord);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
 
-    fixed4 res = shadow;
+    float4 res = shadow;
     return res;
 }
 
