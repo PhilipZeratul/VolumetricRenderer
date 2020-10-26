@@ -87,12 +87,11 @@ namespace Volumetric
             command.BeginSample("Volumetric Renderer");
 
             CalculateMatrices();
-
             ClearAllVolumes();
 
             SetPropertyShadowVolume();
-            WriteShadowVolume();
 
+            WriteShadowVolume();
             SetPropertyMaterialVolume();
             WriteMaterialVolume();
 
