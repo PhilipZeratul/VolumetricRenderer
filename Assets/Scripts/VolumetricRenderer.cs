@@ -242,6 +242,14 @@ namespace Volumetric
         private void SetPropertyShadowVolume()
         {
             shadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
+
+            shadowCompute.SetMatrix(invFroxelVPMatId, invFroxelVPMat);
+            shadowCompute.SetInt(volumeWidthId, volumeWidth);
+            shadowCompute.SetInt(volumeHeightId, volumeHeight);
+            shadowCompute.SetInt(volumeDepthId, volumeDepth);
+            shadowCompute.SetFloat(volumeDistanceId, volumeDistance);
+            shadowCompute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
+            shadowCompute.SetTexture(shadowVolumeDirKernel, shadowVolumeId, shadowVolume);
         }
 
         private void WriteShadowVolume()
@@ -252,9 +260,6 @@ namespace Volumetric
         public void DirLightShadow()
         {
             shadowCommand.Clear();
-
-            shadowCommand.SetComputeMatrixParam(shadowCompute, invFroxelVPMatId, invFroxelVPMat);
-            shadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
             shadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
             shadowCommand.DispatchCompute(shadowCompute, shadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
