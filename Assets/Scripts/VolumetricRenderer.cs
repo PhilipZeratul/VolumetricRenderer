@@ -7,8 +7,10 @@ using UnityEngine.Rendering;
 
 namespace Volumetric
 {
+    // TODO: Make it work with EditMode.
+
     // Render
-    [ExecuteInEditMode]
+    //[ExecuteInEditMode]
     [RequireComponent(typeof(Camera))]
     public partial class VolumetricRenderer : MonoBehaviour
     {
@@ -81,6 +83,7 @@ namespace Volumetric
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
+            command.Clear();
             command.BeginSample("Volumetric Renderer");
 
             CalculateMatrices();
@@ -136,6 +139,11 @@ namespace Volumetric
         private Matrix4x4 froxelProjMat;
         private Matrix4x4 viewMat;
         private Matrix4x4 invFroxelVPMat;
+
+        private void CreateCommands()
+        {
+
+        }
 
         private void ClearAllVolumes()
         {
