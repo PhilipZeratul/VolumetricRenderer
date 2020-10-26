@@ -51,7 +51,7 @@ namespace Volumetric
 
         private void OnEnable()
         {
-            // TODO: Better way to get PostProcessLayer.
+            // TODO: Better way to get volumetricRenderer.
             volumetricRenderer = GameObject.FindObjectOfType<VolumetricRenderer>();
             if (volumetricRenderer != null)
             {

@@ -13,27 +13,59 @@ namespace Volumetric
         public Light theLight;
 
         private VolumetricRenderer volumetricRenderer;
+        private CommandBuffer shadowCommand;
+        private CommandBuffer dirShadowCommand;
+
+        private void Awake()
+        {
+            shadowCommand = new CommandBuffer()
+            {
+                name = "Volumetric Light Command"
+            };
+            dirShadowCommand = new CommandBuffer()
+            {
+                name = "Volumetric Dir Light Command"
+            };
+            //dirShadowCommand.SetGlobalTexture("_ShadowMapTexture", new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive));
+        }
 
         private void OnEnable()
         {
             theLight = GetComponent<Light>();
+            if (theLight.type == LightType.Directional)
+            {
+                theLight.AddCommandBuffer(LightEvent.AfterShadowMap, dirShadowCommand);
+                theLight.AddCommandBuffer(LightEvent.BeforeScreenspaceMask, shadowCommand);
+            }
+            else
+            {
+                theLight.AddCommandBuffer(LightEvent.AfterShadowMap, shadowCommand);
+            }
 
-            // TODO: Better way to get PostProcessLayer.
+            // TODO: Better way to get volumetricRenderer.
             volumetricRenderer = GameObject.FindObjectOfType<VolumetricRenderer>();
             if (volumetricRenderer != null)
             {
                 volumetricRenderer.RegisterLight(this);
-                theLight.AddCommandBuffer(LightEvent.AfterShadowMap, volumetricRenderer.shadowCommand);
                 volumetricRenderer.WriteShadowVolumeEvent += WriteShadowVolume;
             }
         }
 
         private void OnDisable()
         {
+            if (theLight.type == LightType.Directional)
+            {
+                theLight.RemoveCommandBuffer(LightEvent.AfterShadowMap, dirShadowCommand);
+                theLight.RemoveCommandBuffer(LightEvent.BeforeScreenspaceMask, shadowCommand);
+            }
+            else
+            {
+                theLight.RemoveCommandBuffer(LightEvent.AfterShadowMap, shadowCommand);
+            }
+
             if (volumetricRenderer != null)
             {
                 volumetricRenderer.UnregisterLight(this);
-                theLight.RemoveCommandBuffer(LightEvent.AfterShadowMap, volumetricRenderer.shadowCommand);
                 volumetricRenderer.WriteShadowVolumeEvent -= WriteShadowVolume;
             }
         }
@@ -44,7 +76,7 @@ namespace Volumetric
             switch (theLight.type)
             {
                 case LightType.Directional:
-                    WriteShadowVolumeDir();
+                    volumetricRenderer.DirLightShadow(shadowCommand, dirShadowCommand);
                     break;
 
                 case LightType.Point:
@@ -56,11 +88,6 @@ namespace Volumetric
                 default:
                     break;
             }
-        }
-
-        private void WriteShadowVolumeDir()
-        {
-            volumetricRenderer.DirLightShadow();
         }
 
         private void CalculateMatrices()

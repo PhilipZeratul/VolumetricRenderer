@@ -51,10 +51,6 @@ namespace Volumetric
             {
                 name = "Volumetric Clear Command"
             };
-            shadowCommand = new CommandBuffer()
-            {
-                name = "Volumetric Shadow Command"
-            };
 
             volumetricMaterial = new Material(shader);
 
@@ -81,17 +77,20 @@ namespace Volumetric
             mainCamera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand);
         }
 
+        private void OnPreRender()
+        {
+            CalculateMatrices();
+            ClearAllVolumes();
+
+            SetPropertyShadowVolume();
+            WriteShadowVolume();
+        }
+
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
             command.Clear();
             command.BeginSample("Volumetric Renderer");
 
-            CalculateMatrices();
-            ClearAllVolumes();
-
-            SetPropertyShadowVolume();
-
-            WriteShadowVolume();
             SetPropertyMaterialVolume();
             WriteMaterialVolume();
 
@@ -218,8 +217,6 @@ namespace Volumetric
     {
         public event Action WriteShadowVolumeEvent;
 
-        public CommandBuffer shadowCommand;
-
         [SerializeField]
         private ComputeShader shadowCompute;
 
@@ -256,10 +253,12 @@ namespace Volumetric
             WriteShadowVolumeEvent?.Invoke();
         }
 
-        public void DirLightShadow()
+        public void DirLightShadow(CommandBuffer shadowCommand, CommandBuffer dirShadowCommand)
         {
+            dirShadowCommand.Clear();
+            dirShadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
+
             shadowCommand.Clear();
-            shadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
             shadowCommand.DispatchCompute(shadowCompute, shadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
