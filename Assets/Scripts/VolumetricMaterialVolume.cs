@@ -1,7 +1,5 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.PostProcessing;
 
 namespace Volumetric
 {
@@ -10,6 +8,7 @@ namespace Volumetric
     {
         // TODO: 1000m?
         private const float scatterScale = 0.00692f;
+
         private const float absorptScale = 0.00077f;
 
         public enum VolumeType
@@ -28,7 +27,6 @@ namespace Volumetric
         public BlendType blendType;
 
         [Space]
-
         [SerializeField]
         private Color scatteringColor = new Color(0.58f, 0.58f, 0.58f);
         [SerializeField]
@@ -36,6 +34,7 @@ namespace Volumetric
         private float absorption = 0.58f;
         [Range(0.0f, 1.0f)]
         public float phaseG = 0.002f;
+
         // Global emissive intensity
         // Ambient intensity
         // Water droplet density
@@ -44,6 +43,7 @@ namespace Volumetric
         {
             get { return scatteringColor * scatterScale; }
         }
+
         public float AbsorptionCoef
         {
             get { return absorption * absorptScale; }
@@ -62,20 +62,10 @@ namespace Volumetric
             yield return null;
 
             // TODO: Better way to get PostProcessLayer.
-            PostProcessLayer postLayer = GameObject.FindObjectOfType<PostProcessLayer>();
-            if (postLayer != null)
+            volumetricRenderer = GameObject.FindObjectOfType<VolumetricRenderer>();
+            if (volumetricRenderer != null)
             {
-                List<PostProcessLayer.SerializedBundleRef> sortedBundles = postLayer.sortedBundles[PostProcessEvent.BeforeTransparent];
-                string typeName = typeof(Volumetric).AssemblyQualifiedName;
-                PostProcessLayer.SerializedBundleRef bundleRef = sortedBundles.Find(x => x.assemblyQualifiedName == typeName);
-                if (bundleRef != null)
-                {
-                    volumetricRenderer = bundleRef.bundle.renderer as VolumetricRenderer;
-                    if (volumetricRenderer != null)
-                    {
-                        volumetricRenderer.RegisterMaterialVolume(this);
-                    }
-                }
+                volumetricRenderer.RegisterMaterialVolume(this);
             }
         }
 

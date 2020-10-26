@@ -4,34 +4,32 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.PostProcessing;
 
 namespace Volumetric
 {
-    [Serializable]
-    [PostProcess(typeof(VolumetricRenderer), PostProcessEvent.BeforeTransparent, "Custom/VolumetricRenderer", false)]
-    public sealed class Volumetric : PostProcessEffectSettings
+    // Render
+    [ExecuteInEditMode]
+    [RequireComponent(typeof(Camera))]
+    public partial class VolumetricRenderer : MonoBehaviour
     {
-        [DisplayName("Ray Marching Steps"), Range(0f, 100f)]
-        public IntParameter maxSteps = new IntParameter { value = 50 };
+        // Parameters
+        [Range(0f, 100f)]
+        public int maxSteps = 50;
+        [Range(0.1f, 10f)]
+        public float maxDistance = 10f;
+        [Range(10f, 5000f)]
+        public float volumeDistance = 1000f;
 
-        [DisplayName("Ray Marching Distance"), Range(0.1f, 10f)]
-        public FloatParameter maxDistance = new FloatParameter { value = 10f };
-
-        [DisplayName("Froxel Distance"), Range(10.0f, 5000.0f)]
-        public FloatParameter volumeDistance = new FloatParameter { value = 1000.0f };
-
-
-    }
-
-    // Post Processing
-    public partial class VolumetricRenderer : PostProcessEffectRenderer<Volumetric>
-    {
-        private Camera camera;
+        //
+        [Space]
+        [SerializeField]
         private Shader shader;
+        [SerializeField]
         private ComputeShader compute;
-        private Vector3[] frustumCorners = new Vector3[4];
-        private Vector4[] screenTriangleCorners = new Vector4[3];
+
+        private Camera mainCamera;
+        private CommandBuffer command;
+        private Material volumetricMaterial;
 
         private const int volumeWidth = 160;
         private const int volumeHeight = 88;
@@ -40,47 +38,66 @@ namespace Volumetric
         private const int dispatchHeight = volumeHeight / 8;
         private const int dispatchDepth = volumeDepth / 8;
 
-        public override void Init()
+        private void Awake()
         {
+            mainCamera = GetComponent<Camera>();
+            command = new CommandBuffer()
+            {
+                name = "Volumetric Render Command"
+            };
+            clearCommand = new CommandBuffer()
+            {
+                name = "Volumetric Clear Command"
+            };
+            shadowCommand = new CommandBuffer()
+            {
+                name = "Volumetric Shadow Command"
+            };
+
+            volumetricMaterial = new Material(shader);
+
             InitShadowVolumetric();
             CreateMaterialVolumes();
             CreateScatterVolume();
             CreateAccumulationTex();
-            base.Init();
         }
 
-        public override void Release()
+        private void OnDestroy()
         {
-
-            base.Release();
+            // TODO: Cleanup.
         }
 
-        public override void Render(PostProcessRenderContext context)
+        private void OnEnable()
         {
-            context.command.BeginSample("Volumetric");
+            mainCamera.AddCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, command);
+            mainCamera.AddCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand);
+        }
 
-            camera = context.camera;
-            shader = context.resources.shaders.volumetric;
-            compute = context.resources.computeShaders.volumetric;
-            shadowCompute = context.resources.computeShaders.volumetricShadow;
-            PropertySheet sheet = context.propertySheets.Get(shader);
+        private void OnDisable()
+        {
+            mainCamera.RemoveCommandBuffer(CameraEvent.BeforeImageEffectsOpaque, command);
+            mainCamera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand);
+        }
+
+        private void OnRenderImage(RenderTexture source, RenderTexture destination)
+        {
+            command.BeginSample("Volumetric Renderer");
 
             CalculateMatrices();
 
-            CreateClearCommand();
             ClearAllVolumes();
 
-            SetPropertyShadowVolume(context.command);
+            SetPropertyShadowVolume();
             WriteShadowVolume();
 
-            SetPropertyMaterialVolume(context.command);
-            WriteMaterialVolume(context.command);
+            SetPropertyMaterialVolume();
+            WriteMaterialVolume();
 
-            SetPropertyScatterVolume(sheet, context.command);
-            WriteScatterVolume(context.command);
+            SetPropertyScatterVolume();
+            WriteScatterVolume();
 
-            SetPropertyAccumulation(context.command);
-            Accumulate(context.command);
+            SetPropertyAccumulation();
+            Accumulate();
 
             //camera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, frustumCorners);
 
@@ -96,16 +113,15 @@ namespace Volumetric
             //sheet.properties.SetInt("_MaxSteps", settings.maxSteps);
             //sheet.properties.SetFloat("_MaxDistance", settings.maxDistance);
 
-
-            //context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
+            //command.BlitFullscreenTriangle(source, destination, sheet, 0);
 
             //// Test
 #if _DEBUG
-            SetPropertyDebug(sheet);
-            RenderDebug(context, sheet);
+            SetPropertyDebug();
+            RenderDebug(source, destination, volumetricMaterial);
 #endif
 
-            context.command.EndSample("Volumetric");
+            command.EndSample("Volumetric Renderer");
         }
     }
 
@@ -115,22 +131,11 @@ namespace Volumetric
         private CommandBuffer clearCommand;
 
         private int clearKernel;
+        private Vector3[] frustumCorners = new Vector3[4];
+        private Vector4[] screenTriangleCorners = new Vector4[3];
         private Matrix4x4 froxelProjMat;
         private Matrix4x4 viewMat;
         private Matrix4x4 invFroxelVPMat;
-
-        private void CreateClearCommand()
-        {
-            if (clearCommand == null)
-            {
-                clearCommand = new CommandBuffer()
-                {
-                    name = "Clear Command"
-                };
-                camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand); // Prevent duplicated clearCommand after code compilation.
-                camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand);
-            }
-        }
 
         private void ClearAllVolumes()
         {
@@ -146,7 +151,7 @@ namespace Volumetric
         }
 
         private void CreateVolume(ref RenderTexture volume, ref RenderTargetIdentifier id, string name,
-                                  RenderTextureFormat format = RenderTextureFormat.ARGBHalf, TextureDimension dimension = TextureDimension.Tex3D,
+                                  RenderTextureFormat format = RenderTextureFormat.ARGBHalf,
                                   int width = volumeWidth, int height = volumeHeight, int depth = volumeDepth)
         {
             if (volume != null)
@@ -157,7 +162,7 @@ namespace Volumetric
             {
                 name = name,
                 filterMode = FilterMode.Bilinear,
-                dimension = dimension,
+                dimension = TextureDimension.Tex3D,
                 volumeDepth = depth,
                 enableRandomWrite = true
             };
@@ -167,10 +172,10 @@ namespace Volumetric
 
         private void CalculateMatrices()
         {
-            float froxelDistance = settings.volumeDistance;
-            float nearClipPlane = camera.nearClipPlane;
-            float b = 1.0f / Mathf.Tan(Mathf.Deg2Rad * camera.fieldOfView / 2.0f);
-            float a = b / camera.aspect;
+            float froxelDistance = volumeDistance;
+            float nearClipPlane = mainCamera.nearClipPlane;
+            float b = 1.0f / Mathf.Tan(Mathf.Deg2Rad * mainCamera.fieldOfView / 2.0f);
+            float a = b / mainCamera.aspect;
             float c = froxelDistance / (froxelDistance - nearClipPlane);
             float d = -froxelDistance * nearClipPlane / (froxelDistance - nearClipPlane);
             froxelProjMat = new Matrix4x4(
@@ -179,23 +184,25 @@ namespace Volumetric
                 new Vector4(0, 0, c, 1),
                 new Vector4(0, 0, d, 0));
 
-            viewMat = Matrix4x4.TRS(-camera.transform.position, Quaternion.Inverse(camera.transform.rotation), new Vector3(1, 1, 1));
+            viewMat = Matrix4x4.TRS(-mainCamera.transform.position, Quaternion.Inverse(mainCamera.transform.rotation), new Vector3(1, 1, 1));
             invFroxelVPMat = (froxelProjMat * viewMat).inverse;
         }
 
 #if _DEBUG
-        private void SetPropertyDebug(PropertySheet sheet)
+
+        private void SetPropertyDebug()
         {
-            sheet.material.SetTexture(materialVolumeAId, materialVolume_A);
-            sheet.material.SetTexture(materialVolumeBId, materialVolume_B);
-            sheet.material.SetTexture(scatterVolumeId, scatterVolume);
-            sheet.material.SetTexture(accumulationTexId, accumulationTex);
+            volumetricMaterial.SetTexture(materialVolumeAId, materialVolume_A);
+            volumetricMaterial.SetTexture(materialVolumeBId, materialVolume_B);
+            volumetricMaterial.SetTexture(scatterVolumeId, scatterVolume);
+            volumetricMaterial.SetTexture(accumulationTexId, accumulationTex);
         }
 
-        private void RenderDebug(PostProcessRenderContext context, PropertySheet sheet)
+        private void RenderDebug(RenderTexture source, RenderTexture destination, Material mat)
         {
-            context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 1);
+            command.Blit(source, destination, mat, 1);
         }
+
 #endif
     }
 
@@ -203,9 +210,12 @@ namespace Volumetric
     public partial class VolumetricRenderer
     {
         public event Action WriteShadowVolumeEvent;
+
         public CommandBuffer shadowCommand;
 
+        [SerializeField]
         private ComputeShader shadowCompute;
+
         private RenderTexture shadowVolume; // R: Visibility
         private RenderTargetIdentifier shadowVolumeTargetId;
         private RenderTargetIdentifier shadowMapTextureTargetId;
@@ -219,18 +229,11 @@ namespace Volumetric
         {
             CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.R16);
             shadowMapTextureTargetId = new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive);
-            shadowCommand = new CommandBuffer()
-            {
-                name = "Shadow Command"
-            };
         }
 
-        private void SetPropertyShadowVolume(CommandBuffer command)
+        private void SetPropertyShadowVolume()
         {
             shadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
-
-            
-            
         }
 
         private void WriteShadowVolume()
@@ -286,27 +289,29 @@ namespace Volumetric
             materialVolumes.Remove(materialVolume);
         }
 
-        private void SetPropertyMaterialVolume(CommandBuffer command)
+        private void SetPropertyMaterialVolume()
         {
             constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
         }
 
-        private void WriteMaterialVolume(CommandBuffer commandBuffer)
+        private void WriteMaterialVolume()
         {
             for (int i = 0; i < materialVolumes.Count; i++)
             {
                 switch (materialVolumes[i].volumeType)
                 {
                     case VolumetricMaterialVolume.VolumeType.Constant:
-                        commandBuffer.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
-                        commandBuffer.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
-                        commandBuffer.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
-                        commandBuffer.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+                        command.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
+                        command.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
+                        command.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
+                        command.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
+
                     case VolumetricMaterialVolume.VolumeType.Box:
                         break;
+
                     default:
                         break;
                 }
@@ -353,9 +358,9 @@ namespace Volumetric
             CreateVolume(ref scatterVolume, ref scatterVolumeTargetId, "Scatter Volume");
         }
 
-        private void SetPropertyScatterVolume(PropertySheet sheet, CommandBuffer command)
+        private void SetPropertyScatterVolume()
         {
-            sheet.material.SetTexture(scatterVolumeId, scatterVolume);
+            volumetricMaterial.SetTexture(scatterVolumeId, scatterVolume);
 
             scatterVolumeDirKernel = compute.FindKernel("WriteScatterVolumeDir");
             command.SetComputeTextureParam(compute, scatterVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
@@ -364,7 +369,7 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, scatterVolumeDirKernel, scatterVolumeId, scatterVolumeTargetId);
         }
 
-        private void WriteScatterVolume(CommandBuffer command)
+        private void WriteScatterVolume()
         {
             for (int i = 0; i < lights.Count; i++)
             {
@@ -375,17 +380,20 @@ namespace Volumetric
 
                 command.SetComputeVectorParam(compute, lightColorId, lightColor);
                 command.SetComputeVectorParam(compute, lightDirId, lights[i].theLight.transform.forward);
-                command.SetComputeVectorParam(compute, viewDirId, camera.transform.forward);
+                command.SetComputeVectorParam(compute, viewDirId, mainCamera.transform.forward);
 
                 switch (lights[i].theLight.type)
                 {
                     case LightType.Directional:
                         command.DispatchCompute(compute, scatterVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
+
                     case LightType.Spot:
                         break;
+
                     case LightType.Point:
                         break;
+
                     default:
                         break;
                 }
@@ -426,25 +434,25 @@ namespace Volumetric
             accumulationTexTargetId = new RenderTargetIdentifier(accumulationTex);
         }
 
-        private void SetPropertyAccumulation(CommandBuffer command)
+        private void SetPropertyAccumulation()
         {
             accumulationKernel = compute.FindKernel("Accumulation");
             command.SetComputeTextureParam(compute, accumulationKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, accumulationTexId, accumulationTexTargetId);
-            
+
             command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
             command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
             command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
-            command.SetComputeFloatParam(compute, nearPlaneId, camera.nearClipPlane);
-            command.SetComputeFloatParam(compute, volumeDistanceId, settings.volumeDistance);
+            command.SetComputeFloatParam(compute, nearPlaneId, mainCamera.nearClipPlane);
+            command.SetComputeFloatParam(compute, volumeDistanceId, volumeDistance);
             command.SetComputeMatrixParam(compute, invFroxelVPMatId, invFroxelVPMat);
 
             ///Debug
             command.SetComputeTextureParam(compute, accumulationKernel, shadowVolumeId, shadowVolumeTargetId);
         }
 
-        private void Accumulate(CommandBuffer command)
+        private void Accumulate()
         {
             command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
         }

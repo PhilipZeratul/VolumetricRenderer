@@ -1,7 +1,42 @@
-﻿Shader "Volumetric/VolumetricRenderer"
+﻿Shader "Hidden/Volumetric/VolumetricRenderer"
 {
     SubShader
     {
+        CGINCLUDE
+
+        #pragma enable_d3d11_debug_symbols
+
+        struct appdata
+        {
+            uint id : SV_VertexID;
+        };
+
+        struct v2f
+        {
+            float4 position : SV_POSITION;
+            float2 uv : TEXCOORD0;
+        };
+
+        // Postprocessing https://www.reddit.com/r/gamedev/comments/2j17wk/a_slightly_faster_bufferless_vertex_shader_trick/
+        v2f vert(appdata v)
+        {
+            v2f o;
+            UNITY_INITIALIZE_OUTPUT(v2f, o);
+
+            o.uv.x = (v.id == 2) ? 2.0 : 0.0;
+            o.uv.y = (v.id == 1) ? 2.0 : 0.0;
+
+            o.position = float4(o.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 1.0, 1.0);
+
+            #if UNITY_UV_STARTS_AT_TOP
+                o.uv = o.uv * float2(1.0, -1.0) + float2(0.0, 1.0);
+            #endif
+
+            return o;
+        }
+
+        ENDCG
+
         Pass
         {
             Blend One Zero
@@ -9,55 +44,25 @@
             ZTest Always
             ZWrite Off
 
-            HLSLPROGRAM
+            CGPROGRAM
 
-            #pragma vertex Vert
-            #pragma fragment Frag
+            #pragma vertex vert
+            #pragma fragment frag
 
-            #pragma enable_d3d11_debug_symbols
+            #include "UnityCG.cginc"
 
-            #include "Packages/com.unity.postprocessing/PostProcessing/Shaders/StdLib.hlsl"
-            
-            struct Attributes
-            {
-                float3 vertex : POSITION;
-                uint id : SV_VertexID;
-            };
-
-            struct Varyings
-            {
-                float4 position : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float3 viewDir : TEXCOORD1;
-            };
-
-            TEXTURE2D_SAMPLER2D(_MainTex, sampler_MainTex);
-            TEXTURE2D_SAMPLER2D(_CameraDepthTexture, sampler_CameraDepthTexture);
+            UNITY_DECLARE_TEX2D(_MainTex);
+            UNITY_DECLARE_TEX2D(_CameraDepthTexture);
 
             float4 _ScreenQuadCorners[3];
             int _MaxSteps;
             float _MaxDistance;
 
-            Varyings Vert(Attributes v)
+            float4 frag(v2f IN) : SV_Target
             {
-                Varyings o;
-                o.position = float4(v.vertex.xy, 0.0, 1.0);
-                o.uv = TransformTriangleVertexToUV(v.vertex.xy);
+                /*float3 viewDirWS = IN.viewDir;
 
-                #if UNITY_UV_STARTS_AT_TOP
-                    o.uv = o.uv * float2(1.0, -1.0) + float2(0.0, 1.0);
-                #endif
-
-                o.viewDir = _ScreenQuadCorners[v.id].xyz;
-
-                return o;
-            }
-
-            float4 Frag(Varyings IN) : SV_Target
-            {
-                float3 viewDirWS = IN.viewDir;
-
-                float depth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, IN.uv).r;
+                float depth = UNITY_SAMPLE_TEX2D(_CameraDepthTexture, IN.uv).r;
                 float viewDepth = LinearEyeDepth(depth);
 
                 float3 currentPos = _WorldSpaceCameraPos.xyz;
@@ -70,14 +75,15 @@
                     accumDist += stepDist;
                 }
 
-                float4 mainTex = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
+                float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
 
                 float fog = exp(-accumDist * 0.3);
-                float4 color = lerp(1, mainTex, fog);
-                //float4 color = float4(IN.uv, 0, 1);
+                float4 color = lerp(1, mainTex, fog);*/
+                float4 color = float4(IN.uv, 0, 1);
+                
                 return color;
             }
-            ENDHLSL
+            ENDCG
         }
 
         Pass // Debug
@@ -87,53 +93,27 @@
             ZTest Always
             ZWrite Off
 
-            HLSLPROGRAM
+            CGPROGRAM
 
-            #pragma vertex Vert
-            #pragma fragment Frag
+            #pragma vertex vert
+            #pragma fragment frag
 
-            #pragma enable_d3d11_debug_symbols
+            #include "UnityCG.cginc"
 
-            #include "Packages/com.unity.postprocessing/PostProcessing/Shaders/StdLib.hlsl"
+            UNITY_DECLARE_TEX3D(_ShadowVolume);
+            UNITY_DECLARE_TEX3D(_MaterialVolume_A);
+            UNITY_DECLARE_TEX3D(_MaterialVolume_B);
+            UNITY_DECLARE_TEX3D(_ScatterVolume);
+            UNITY_DECLARE_TEX2D(_AccumulationTex);
 
-            struct Attributes
-            {
-                float3 vertex : POSITION;
-            };
-
-            struct Varyings
-            {
-                float4 position : SV_POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            TEXTURE2D_SAMPLER2D(_ShadowVolume, sampler_ShadowVolume);
-            TEXTURE3D_SAMPLER3D(_MaterialVolume_A, sampler_MaterialVolume_A);
-            TEXTURE3D_SAMPLER3D(_MaterialVolume_B, sampler_MaterialVolume_B);
-            TEXTURE3D_SAMPLER3D(_ScatterVolume, sampler_ScatterVolume);
-            TEXTURE2D_SAMPLER2D(_AccumulationTex, sampler_AccumulationTex);
-
-            Varyings Vert(Attributes v)
-            {
-                Varyings o;
-                o.position = float4(v.vertex.xy, 0.0, 1.0);
-                o.uv = TransformTriangleVertexToUV(v.vertex.xy);
-
-                #if UNITY_UV_STARTS_AT_TOP
-                    o.uv = o.uv * float2(1.0, -1.0) + float2(0.0, 1.0);
-                #endif
-
-                return o;
-            }
-
-            float4 Frag(Varyings IN) : SV_Target
+            float4 frag(v2f IN) : SV_Target
             {
                 //float4 color = SAMPLE_TEXTURE3D(_ScatterVolume, sampler_ScatterVolume, float3(IN.uv, 0));
-                float4 color = SAMPLE_TEXTURE2D(_AccumulationTex, sampler_AccumulationTex, IN.uv);
-                //color = 1;
+                float4 color = UNITY_SAMPLE_TEX2D(_AccumulationTex, IN.uv);
+                color = float4(IN.uv, 0, 1);
                 return color;
             }
-            ENDHLSL
+            ENDCG
         }
     }
 }

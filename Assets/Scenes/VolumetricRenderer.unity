@@ -329,7 +329,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170076733}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fab809b9726665140ace5c2dc2da4b1d, type: 3}
   m_Name: 
@@ -554,6 +554,7 @@ GameObject:
   - component: {fileID: 534669904}
   - component: {fileID: 534669903}
   - component: {fileID: 534669906}
+  - component: {fileID: 534669907}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -682,11 +683,27 @@ MonoBehaviour:
   m_ShowToolkit: 0
   m_ShowCustomSorter: 0
   breakBeforeColorGrading: 0
-  m_BeforeTransparentBundles:
-  - assemblyQualifiedName: Volumetric.Volumetric, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
+  m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles: []
+--- !u!114 &534669907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 534669902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cce29e55bc7624846852267077d81c94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxSteps: 50
+  maxDistance: 10
+  volumeDistance: 1000
+  shader: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
+  compute: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
+  shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
 --- !u!1 &547336500
 GameObject:
   m_ObjectHideFlags: 0

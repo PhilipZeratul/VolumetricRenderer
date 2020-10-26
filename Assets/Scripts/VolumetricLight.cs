@@ -1,8 +1,6 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.PostProcessing;
 
 namespace Volumetric
 {
@@ -28,22 +26,13 @@ namespace Volumetric
             yield return null; // Wait for PostProcessLayer.sortedBundles to construct.
 
             // TODO: Better way to get PostProcessLayer.
-            PostProcessLayer postLayer = GameObject.FindObjectOfType<PostProcessLayer>();
-            if (postLayer != null)
+
+            volumetricRenderer = GameObject.FindObjectOfType<VolumetricRenderer>();
+            if (volumetricRenderer != null)
             {
-                List<PostProcessLayer.SerializedBundleRef> sortedBundles = postLayer.sortedBundles[PostProcessEvent.BeforeTransparent];
-                string typeName = typeof(Volumetric).AssemblyQualifiedName;
-                PostProcessLayer.SerializedBundleRef bundleRef = sortedBundles.Find(x => x.assemblyQualifiedName == typeName);
-                if (bundleRef != null)
-                {
-                    volumetricRenderer = bundleRef.bundle.renderer as VolumetricRenderer;
-                    if (volumetricRenderer != null)
-                    {
-                        volumetricRenderer.RegisterLight(this);
-                        theLight.AddCommandBuffer(LightEvent.AfterShadowMap, volumetricRenderer.shadowCommand);
-                        volumetricRenderer.WriteShadowVolumeEvent += WriteShadowVolume;
-                    }
-                }
+                volumetricRenderer.RegisterLight(this);
+                theLight.AddCommandBuffer(LightEvent.AfterShadowMap, volumetricRenderer.shadowCommand);
+                volumetricRenderer.WriteShadowVolumeEvent += WriteShadowVolume;
             }
         }
 
@@ -65,10 +54,13 @@ namespace Volumetric
                 case LightType.Directional:
                     WriteShadowVolumeDir();
                     break;
+
                 case LightType.Point:
                     break;
+
                 case LightType.Spot:
                     break;
+
                 default:
                     break;
             }
@@ -76,7 +68,6 @@ namespace Volumetric
 
         private void WriteShadowVolumeDir()
         {
-            
             volumetricRenderer.DirLightShadow();
         }
 
@@ -89,12 +80,15 @@ namespace Volumetric
             {
                 case LightType.Spot:
                     break;
+
                 case LightType.Directional:
                     lightViewMat = Matrix4x4.TRS(-theLight.transform.position, Quaternion.Inverse(theLight.transform.rotation), new Vector3(1, 1, 1));
 
                     break;
+
                 case LightType.Point:
                     break;
+
                 default:
                     break;
             }
