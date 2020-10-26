@@ -139,3 +139,4 @@ MonoBehaviour:
     gaussianDownsample: {fileID: 7200000, guid: 6dba4103d23a7904fbc49099355aff3e,
       type: 3}
     volumetric: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
+    volumetricShadow: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}

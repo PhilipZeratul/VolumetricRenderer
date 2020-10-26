@@ -10,7 +10,7 @@ namespace Volumetric
     [RequireComponent(typeof(Light))]
     public class VolumetricLight : MonoBehaviour
     {
-        public bool shouldCastShadow = false;
+        public bool volumetricShadow = false;
 
         [HideInInspector]
         public Light theLight;
@@ -63,11 +63,37 @@ namespace Volumetric
             switch (theLight.type)
             {
                 case LightType.Directional:
-                    volumetricRenderer.DirLightShadow();
+                    WriteShadowVolumeDir();
                     break;
                 case LightType.Point:
                     break;
                 case LightType.Spot:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void WriteShadowVolumeDir()
+        {
+            
+            volumetricRenderer.DirLightShadow();
+        }
+
+        private void CalculateMatrices()
+        {
+            Matrix4x4 lightViewMat;
+            Matrix4x4 lightProjMat;
+
+            switch (theLight.type)
+            {
+                case LightType.Spot:
+                    break;
+                case LightType.Directional:
+                    lightViewMat = Matrix4x4.TRS(-theLight.transform.position, Quaternion.Inverse(theLight.transform.rotation), new Vector3(1, 1, 1));
+
+                    break;
+                case LightType.Point:
                     break;
                 default:
                     break;

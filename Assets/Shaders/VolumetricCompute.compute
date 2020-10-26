@@ -1,7 +1,6 @@
 ﻿#pragma enable_d3d11_debug_symbols
 
 #pragma kernel ClearAllVolumes
-#pragma kernel WriteShadowVolumeDir
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel Accumulation
@@ -17,14 +16,6 @@ void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
     _MaterialVolume_B[pos] = 0;
     _ScatterVolume[pos] = 0;
     _AccumulationTex[pos.xy] = 0;
-}
-
-[numthreads(8, 8, 8)]
-void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
-{
-    float4 worldPos = FroxelPos2WorldPos(pos);
-    float visibility = SampleShadow(worldPos);
-    _ShadowVolume[pos] *= visibility;
 }
 
 [numthreads(8 ,8, 8)]

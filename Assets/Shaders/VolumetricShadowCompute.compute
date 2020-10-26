@@ -1,0 +1,14 @@
+﻿#pragma enable_d3d11_debug_symbols
+
+#pragma kernel WriteShadowVolumeDir
+
+#include "VolumetricHelper.hlsl"
+
+// Kernels
+[numthreads(8, 8, 8)]
+void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
+{
+    float4 worldPos = FroxelPos2WorldPos(pos);
+    float visibility = SampleShadow(worldPos);
+    _ShadowVolume[pos] *= visibility;
+}

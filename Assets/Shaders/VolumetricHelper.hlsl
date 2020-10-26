@@ -41,13 +41,14 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
     return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
 }
 
+// TODO: Integraget remap into matrix.
 // (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1)
 float4 FroxelPos2ClipPos(uint3 froxelPos)
 {
     float4 clipPos = 0;
     clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
     clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
-    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
+    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0); 
     clipPos.w = 1;
     return clipPos;
 }

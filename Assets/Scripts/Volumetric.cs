@@ -42,7 +42,7 @@ namespace Volumetric
 
         public override void Init()
         {
-            CreateShadowVolume();
+            InitShadowVolumetric();
             CreateMaterialVolumes();
             CreateScatterVolume();
             CreateAccumulationTex();
@@ -62,14 +62,15 @@ namespace Volumetric
             camera = context.camera;
             shader = context.resources.shaders.volumetric;
             compute = context.resources.computeShaders.volumetric;
+            shadowCompute = context.resources.computeShaders.volumetricShadow;
             PropertySheet sheet = context.propertySheets.Get(shader);
 
-            CreateClearCommand();
             CalculateMatrices();
 
+            CreateClearCommand();
             ClearAllVolumes();
 
-            SetPropertyShadowVolume();
+            SetPropertyShadowVolume(context.command);
             WriteShadowVolume();
 
             SetPropertyMaterialVolume(context.command);
@@ -126,6 +127,7 @@ namespace Volumetric
                 {
                     name = "Clear Command"
                 };
+                camera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand); // Prevent duplicated clearCommand after code compilation.
                 camera.AddCommandBuffer(CameraEvent.BeforeGBuffer, clearCommand);
             }
         }
@@ -203,6 +205,7 @@ namespace Volumetric
         public event Action WriteShadowVolumeEvent;
         public CommandBuffer shadowCommand;
 
+        private ComputeShader shadowCompute;
         private RenderTexture shadowVolume; // R: Visibility
         private RenderTargetIdentifier shadowVolumeTargetId;
         private RenderTargetIdentifier shadowMapTextureTargetId;
@@ -212,7 +215,7 @@ namespace Volumetric
 
         private int shadowVolumeDirKernel;
 
-        private void CreateShadowVolume()
+        private void InitShadowVolumetric()
         {
             CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.R16);
             shadowMapTextureTargetId = new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive);
@@ -222,12 +225,11 @@ namespace Volumetric
             };
         }
 
-        private void SetPropertyShadowVolume()
+        private void SetPropertyShadowVolume(CommandBuffer command)
         {
-            shadowVolumeDirKernel = compute.FindKernel("WriteShadowVolumeDir");
+            shadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
 
-            shadowCommand.Clear();
-            shadowCommand.SetComputeTextureParam(compute, shadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
+            
             
         }
 
@@ -238,12 +240,16 @@ namespace Volumetric
 
         public void DirLightShadow()
         {
-            shadowCommand.SetComputeTextureParam(compute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
-            shadowCommand.DispatchCompute(compute, shadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+            shadowCommand.Clear();
+
+            shadowCommand.SetComputeMatrixParam(shadowCompute, invFroxelVPMatId, invFroxelVPMat);
+            shadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
+            shadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
+            shadowCommand.DispatchCompute(shadowCompute, shadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
 
-        // Material Volume
+    // Material Volume
     public partial class VolumetricRenderer
     {
         private RenderTexture materialVolume_A; // RGB: Scattering, A: Absorption

@@ -222,6 +222,7 @@ namespace UnityEngine.Rendering.PostProcessing
             /// The compute shader used for Volumetric.
             /// </summary>
             public ComputeShader volumetric;
+            public ComputeShader volumetricShadow;
 
             /// <summary>
             /// Returns a copy of this class and its content.
