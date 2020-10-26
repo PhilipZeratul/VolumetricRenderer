@@ -1,14 +1,12 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Volumetric
 {
-    [ExecuteInEditMode]
+    //[ExecuteInEditMode]
     public class VolumetricMaterialVolume : MonoBehaviour
     {
-        // TODO: 1000m?
+        // TODO: Scale with 1000m?
         private const float scatterScale = 0.00692f;
-
         private const float absorptScale = 0.00077f;
 
         public enum VolumeType
@@ -53,14 +51,6 @@ namespace Volumetric
 
         private void OnEnable()
         {
-            StartCoroutine(nameof(RegisterCoroutine));
-        }
-
-        private IEnumerator RegisterCoroutine()
-        {
-            // Wait for PostProcessLayer.sortedBundles to construct.
-            yield return null;
-
             // TODO: Better way to get PostProcessLayer.
             volumetricRenderer = GameObject.FindObjectOfType<VolumetricRenderer>();
             if (volumetricRenderer != null)

@@ -21,8 +21,8 @@ void ClearAllVolumes(uint3 pos : SV_DispatchThreadID)
 [numthreads(8 ,8, 8)]
 void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
 {
-    _MaterialVolume_A[pos] += float4(_ScatteringCoef, _AbsorptionCoef);
-    _MaterialVolume_B[pos] += float4(_PhaseG, 0, 0, 0);
+    _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
+    _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
 }
 
 [numthreads(8, 8, 8)]
@@ -74,10 +74,10 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
         accumuLight += inScatter * scatterCoef * transmittance;
 
         /// Debug
-        _AccumulationTex[pos] = min(_ShadowVolume[uint3(pos.xy, i)], _AccumulationTex[pos]);
+        //_AccumulationTex[pos] = min(_ShadowVolume[uint3(pos.xy, i)], _AccumulationTex[pos]);
     }
 
-    //_AccumulationTex[pos] = float4(accumuLight, transmittance);
+    _AccumulationTex[pos] = float4(accumuLight, transmittance);
 
 
     //shadow /= _VolumeDepth;

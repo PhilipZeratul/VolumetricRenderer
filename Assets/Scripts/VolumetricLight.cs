@@ -1,10 +1,9 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Volumetric
 {
-    [ExecuteInEditMode]
+    //[ExecuteInEditMode]
     [RequireComponent(typeof(Light))]
     public class VolumetricLight : MonoBehaviour
     {
@@ -18,15 +17,8 @@ namespace Volumetric
         private void OnEnable()
         {
             theLight = GetComponent<Light>();
-            StartCoroutine(nameof(RegisterCoroutine));
-        }
-
-        private IEnumerator RegisterCoroutine()
-        {
-            yield return null; // Wait for PostProcessLayer.sortedBundles to construct.
 
             // TODO: Better way to get PostProcessLayer.
-
             volumetricRenderer = GameObject.FindObjectOfType<VolumetricRenderer>();
             if (volumetricRenderer != null)
             {
