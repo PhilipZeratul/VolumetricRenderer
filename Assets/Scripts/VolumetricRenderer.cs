@@ -90,8 +90,8 @@ namespace Volumetric
 
             ClearAllVolumes();
 
-            //SetPropertyShadowVolume();
-            //WriteShadowVolume();
+            SetPropertyShadowVolume();
+            WriteShadowVolume();
 
             SetPropertyMaterialVolume();
             WriteMaterialVolume();

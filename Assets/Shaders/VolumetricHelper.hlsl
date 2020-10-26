@@ -1,7 +1,7 @@
 #ifndef VOLUMETRIC_HELPER
 #define VOLUMETRIC_HELPER
 
-#include "HLSLSupport.cginc"
+#include "UnityCG.cginc"
 
 #define PI 3.1415926535
 
@@ -12,7 +12,6 @@ RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
-//Texture2D<float4> _ShadowMapTexture; SamplerComparisonState sampler_ShadowMapTexture;
 UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
 
 float3 _ScatteringCoef;
@@ -41,7 +40,7 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
     return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
 }
 
-// TODO: Integraget remap into matrix.
+// TODO: Integrate remap into matrix.
 // (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1)
 float4 FroxelPos2ClipPos(uint3 froxelPos)
 {
@@ -68,12 +67,6 @@ float Rgb2Gray(float3 c)
     float gray = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
     return gray;
 }
-
-// Shadows
-float4 unity_ShadowSplitSpheres[4];
-float4 unity_ShadowSplitSqRadii;
-float4x4 unity_WorldToShadow[4];
-half4 _LightShadowData;
 
 /**
  * Gets the cascade weights based on the world position of the fragment and the poisitions of the split spheres for each cascade.
