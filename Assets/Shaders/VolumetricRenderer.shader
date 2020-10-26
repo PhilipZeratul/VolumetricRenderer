@@ -100,6 +100,8 @@
 
             #include "UnityCG.cginc"
 
+            UNITY_DECLARE_TEX2D(_MainTex);
+
             UNITY_DECLARE_TEX3D(_ShadowVolume);
             UNITY_DECLARE_TEX3D(_MaterialVolume_A);
             UNITY_DECLARE_TEX3D(_MaterialVolume_B);
@@ -109,7 +111,10 @@
             float4 frag(v2f IN) : SV_Target
             {
                 //float4 color = UNITY_SAMPLE_TEX3D(_ScatterVolume, float3(IN.uv, 0));
+                float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
                 float4 color = UNITY_SAMPLE_TEX2D(_AccumulationTex, IN.uv);
+                color = lerp(mainTex, color, color.a);
+                color = mainTex;
                 //color = float4(IN.uv, 0, 1);
                 return color;
             }

@@ -235,7 +235,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   volumeType: 0
   blendType: 0
-  scatteringColor: {r: 0.8867924, g: 0.2786036, b: 0.12967247, a: 0}
+  scatteringColor: {r: 0.8773585, g: 0.84507835, b: 0.71595764, a: 0}
   absorption: 0.511
   phaseG: 0.207
 --- !u!4 &121168365
@@ -281,7 +281,7 @@ Light:
   serializedVersion: 8
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 50
+  m_Intensity: 30
   m_Range: 10
   m_SpotAngle: 30
   m_CookieSize: 10
@@ -315,13 +315,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170076733}
-  m_LocalRotation: {x: -0.2331947, y: 0.64217323, z: -0.24123266, w: -0.68923193}
+  m_LocalRotation: {x: 0.033177182, y: 0.941003, z: -0.33387497, w: 0.04404586}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1872705087}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: -320.856, y: -85.08401, z: 2.4410002}
+  m_LocalEulerAnglesHint: {x: -320.856, y: -184.49199, z: 2.4410002}
 --- !u!114 &170076736
 MonoBehaviour:
   m_ObjectHideFlags: 0

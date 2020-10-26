@@ -167,7 +167,7 @@ namespace Volumetric
             volume = new RenderTexture(width, height, 0, format)
             {
                 name = name,
-                filterMode = FilterMode.Bilinear,
+                filterMode = FilterMode.Trilinear,
                 dimension = TextureDimension.Tex3D,
                 volumeDepth = depth,
                 enableRandomWrite = true
