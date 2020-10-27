@@ -91,6 +91,8 @@ namespace Volumetric
             command.Clear();
             command.BeginSample("Volumetric Renderer");
 
+            SetPropertyGeneral();
+
             SetPropertyMaterialVolume();
             WriteMaterialVolume();
 
@@ -137,11 +139,6 @@ namespace Volumetric
         private Matrix4x4 froxelProjMat;
         private Matrix4x4 viewMat;
         private Matrix4x4 invFroxelVPMat;
-
-        private void CreateCommands()
-        {
-
-        }
 
         private void ClearAllVolumes()
         {
@@ -192,6 +189,16 @@ namespace Volumetric
 
             viewMat = Matrix4x4.TRS(-mainCamera.transform.position, Quaternion.Inverse(mainCamera.transform.rotation), new Vector3(1, 1, 1));
             invFroxelVPMat = (froxelProjMat * viewMat).inverse;
+        }
+
+        private void SetPropertyGeneral()
+        {
+            command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
+            command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
+            command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
+            command.SetComputeFloatParam(compute, nearPlaneId, mainCamera.nearClipPlane);
+            command.SetComputeFloatParam(compute, volumeDistanceId, volumeDistance);
+            command.SetComputeMatrixParam(compute, invFroxelVPMatId, invFroxelVPMat);
         }
 
 #if _DEBUG
@@ -305,13 +312,6 @@ namespace Volumetric
             constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
-
-            command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
-            command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
-            command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
-            command.SetComputeFloatParam(compute, nearPlaneId, mainCamera.nearClipPlane);
-            command.SetComputeFloatParam(compute, volumeDistanceId, volumeDistance);
-            command.SetComputeMatrixParam(compute, invFroxelVPMatId, invFroxelVPMat);
         }
 
         private void WriteMaterialVolume()
