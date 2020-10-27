@@ -10,5 +10,5 @@ void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
     float4 worldPos = FroxelPos2WorldPos(pos);
     float visibility = SampleShadow(worldPos);
-    _ShadowVolume[pos] *= visibility;
+    _ShadowVolume[pos] = visibility;
 }

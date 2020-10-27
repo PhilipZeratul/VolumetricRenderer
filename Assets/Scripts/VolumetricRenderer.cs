@@ -80,7 +80,8 @@ namespace Volumetric
         private void OnPreRender()
         {
             CalculateMatrices();
-            ClearAllVolumes();
+            //ClearAllVolumes();
+            TemporalPrevVolume();
 
             SetPropertyShadowVolume();
             WriteShadowVolume();
@@ -181,11 +182,14 @@ namespace Volumetric
             float a = b / mainCamera.aspect;
             float c = froxelDistance / (froxelDistance - nearClipPlane);
             float d = -froxelDistance * nearClipPlane / (froxelDistance - nearClipPlane);
+
             froxelProjMat = new Matrix4x4(
                 new Vector4(a, 0, 0, 0),
                 new Vector4(0, b, 0, 0),
                 new Vector4(0, 0, c, 1),
                 new Vector4(0, 0, d, 0));
+
+            GetJitterdMatrix(ref froxelProjMat);
 
             viewMat = Matrix4x4.TRS(-mainCamera.transform.position, Quaternion.Inverse(mainCamera.transform.rotation), new Vector3(1, 1, 1));
             invFroxelVPMat = (froxelProjMat * viewMat).inverse;
@@ -219,8 +223,40 @@ namespace Volumetric
 #endif
     }
 
-    // Shadow Volume
+    // Temporal Blend
     public partial class VolumetricRenderer
+    {
+        public float temporalJitterScale = 0.1f;
+        private int jitterIndex = 0;
+
+        private void GetJitterdMatrix(ref Matrix4x4 projMat)
+        {
+            if (jitterIndex++ > 3)
+            {
+                jitterIndex = 0;
+            }
+            projMat[2, 3] += temporalJitterScale * jitterIndex;
+        }
+
+        private void CalcReprojMatrix()
+        {
+
+        }
+
+        private void TemporalPrevVolume()
+        {
+            int temporalPrevVolumesKernel = compute.FindKernel("TemporalPrevVolumes");
+            clearCommand.Clear();
+            clearCommand.SetComputeTextureParam(compute, temporalPrevVolumesKernel, shadowVolumeId, shadowVolumeTargetId);
+            clearCommand.SetComputeTextureParam(compute, temporalPrevVolumesKernel, materialVolumeAId, materialVolumeATargetId);
+            clearCommand.SetComputeTextureParam(compute, temporalPrevVolumesKernel, materialVolumeBId, materialVolumeBTargetId);
+            clearCommand.SetComputeTextureParam(compute, temporalPrevVolumesKernel, scatterVolumeId, scatterVolumeTargetId);
+            clearCommand.SetComputeTextureParam(compute, temporalPrevVolumesKernel, accumulationTexId, accumulationTexTargetId);
+        }
+    }
+
+    // Shadow Volume
+        public partial class VolumetricRenderer
     {
         public event Action WriteShadowVolumeEvent;
 
