@@ -1,5 +1,9 @@
 ﻿Shader "Hidden/Volumetric/VolumetricRenderer"
 {
+    Properties
+    {
+        _MainTex("MainTex", 2D) = "white" {}
+    }
     SubShader
     {
         CGINCLUDE

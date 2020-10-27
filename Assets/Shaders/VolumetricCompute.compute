@@ -74,8 +74,4 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
     }
 
     _AccumulationTex[pos] = float4(accumuLight, transmittance);
-
-
-    //shadow /= _VolumeDepth;
-    //_AccumulationTex[pos] = shadow.xxxx;
 }
