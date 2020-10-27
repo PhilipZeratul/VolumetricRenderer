@@ -19,8 +19,8 @@ namespace Volumetric
         public int maxSteps = 50;
         [Range(0.1f, 10f)]
         public float maxDistance = 10f;
-        [Range(10f, 5000f)]
-        public float volumeDistance = 1000f;
+        [Range(10f, 500f)]
+        public float volumeDistance = 100f; // 50 - 100m in AC4
 
         //
         [Space]
@@ -167,7 +167,7 @@ namespace Volumetric
             volume = new RenderTexture(width, height, 0, format)
             {
                 name = name,
-                filterMode = FilterMode.Trilinear,
+                filterMode = FilterMode.Bilinear,
                 dimension = TextureDimension.Tex3D,
                 volumeDepth = depth,
                 enableRandomWrite = true
@@ -305,6 +305,13 @@ namespace Volumetric
             constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
+
+            command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
+            command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
+            command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
+            command.SetComputeFloatParam(compute, nearPlaneId, mainCamera.nearClipPlane);
+            command.SetComputeFloatParam(compute, volumeDistanceId, volumeDistance);
+            command.SetComputeMatrixParam(compute, invFroxelVPMatId, invFroxelVPMat);
         }
 
         private void WriteMaterialVolume()
@@ -345,7 +352,6 @@ namespace Volumetric
         private readonly int scatterVolumeId = Shader.PropertyToID("_ScatterVolume");
         private readonly int lightColorId = Shader.PropertyToID("_LightColor");
         private readonly int lightDirId = Shader.PropertyToID("_LightDir");
-        private readonly int viewDirId = Shader.PropertyToID("_ViewDir");
 
         private int scatterVolumeDirKernel;
 
@@ -391,7 +397,6 @@ namespace Volumetric
 
                 command.SetComputeVectorParam(compute, lightColorId, lightColor);
                 command.SetComputeVectorParam(compute, lightDirId, lights[i].theLight.transform.forward);
-                command.SetComputeVectorParam(compute, viewDirId, mainCamera.transform.forward);
 
                 switch (lights[i].theLight.type)
                 {
@@ -451,16 +456,6 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, accumulationKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, accumulationTexId, accumulationTexTargetId);
-
-            command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
-            command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
-            command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
-            command.SetComputeFloatParam(compute, nearPlaneId, mainCamera.nearClipPlane);
-            command.SetComputeFloatParam(compute, volumeDistanceId, volumeDistance);
-            command.SetComputeMatrixParam(compute, invFroxelVPMatId, invFroxelVPMat);
-
-            ///Debug
-            command.SetComputeTextureParam(compute, accumulationKernel, shadowVolumeId, shadowVolumeTargetId);
         }
 
         private void Accumulate()

@@ -28,7 +28,6 @@ void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
 [numthreads(8, 8, 8)]
 void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    // TODO: Sample shadow.
     float visibility = _ShadowVolume[pos];
 
     float4 materialA = _MaterialVolume_A[pos];
@@ -38,7 +37,9 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
     float absorptCoef = materialA.a;
     float phaseG = materialB.r;
 
-    float cosTheta = dot(_ViewDir, -_LightDir);
+    float3 worldPos = FroxelPos2WorldPos(pos);
+    float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
+    float cosTheta = dot(viewDir, -_LightDir);
 
     float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * scatterCoef;
     float extinction = Rgb2Gray(scatterCoef) + absorptCoef;

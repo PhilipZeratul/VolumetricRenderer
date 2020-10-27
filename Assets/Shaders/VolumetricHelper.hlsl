@@ -20,7 +20,6 @@ float _PhaseG;
 
 float3 _LightColor;
 float3 _LightDir;
-float3 _ViewDir;
 
 int _VolumeWidth, _VolumeHeight, _VolumeDepth;
 float _NearPlane, _VolumeDistance;
@@ -41,6 +40,7 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
 }
 
 // TODO: Integrate remap into matrix.
+// TODO: Use exponential depth mapping to increase near camera precision.
 // (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1)
 float4 FroxelPos2ClipPos(uint3 froxelPos)
 {
