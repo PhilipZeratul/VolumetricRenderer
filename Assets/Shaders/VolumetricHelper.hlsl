@@ -6,10 +6,10 @@
 #define PI 3.1415926535
 
 // Parameters
-RWTexture3D<float> _ShadowVolume; // R: Visibility
-RWTexture3D<float4> _MaterialVolume_A; // RGB: Scattering Coef, A: Absorption
-RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
-RWTexture3D<float4> _ScatterVolume; // RGB: Scattered Light, A: 
+RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
+RWTexture3D<float4> _MaterialVolume_A, _PrevMaterialVolume_A; // RGB: Scattering Coef, A: Absorption
+RWTexture3D<float4> _MaterialVolume_B, _PrevMaterialVolume_B; // R: Phase G
+RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: 
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
 UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
@@ -24,7 +24,10 @@ float3 _LightDir;
 int _VolumeWidth, _VolumeHeight, _VolumeDepth;
 float _NearPlane, _VolumeDistance;
 
-float4x4 _invFroxelVPMat;
+float4x4 _ClipToWorldMat;
+float4x4 _ReprojMat;
+
+float _TemporalBlendAlpha;
 
 // Helper Functions
 float PhaseFunction(float g, float cosTheta)
@@ -39,9 +42,8 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
     return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
 }
 
-// TODO: Integrate remap into matrix.
 // TODO: Use exponential depth mapping to increase near camera precision.
-// (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1)
+// (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1) scaled with z.
 float4 FroxelPos2ClipPos(uint3 froxelPos)
 {
     float4 clipPos = 0;
@@ -49,15 +51,15 @@ float4 FroxelPos2ClipPos(uint3 froxelPos)
     clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
     clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0); 
     clipPos.w = 1;
+    float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
+    clipPos *= z;
     return clipPos;
 }
 
 float4 FroxelPos2WorldPos(uint3 froxelPos)
 {
     float4 clipPos = FroxelPos2ClipPos(froxelPos);
-    float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
-    clipPos *= z;
-    float4 worldPos = mul(_invFroxelVPMat, clipPos);
+    float4 worldPos = mul(_ClipToWorldMat, clipPos);
     worldPos /= worldPos.w;
     return worldPos;
 }

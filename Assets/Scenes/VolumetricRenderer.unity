@@ -235,7 +235,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   volumeType: 0
   blendType: 0
-  scatteringColor: {r: 0.8773585, g: 0.84507835, b: 0.71595764, a: 0}
+  scatteringColor: {r: 1, g: 1, b: 1, a: 0}
   absorption: 0.511
   phaseG: 0.207
 --- !u!4 &121168365
@@ -280,7 +280,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 8
   m_Type: 1
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.990566, g: 0.95761335, b: 0.7989943, a: 1}
   m_Intensity: 30
   m_Range: 10
   m_SpotAngle: 30
@@ -642,6 +642,8 @@ MonoBehaviour:
   volumeDistance: 100
   shader: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
   compute: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
+  temporalJitterScale: 0.01
+  temporalBlendAlpha: 0.05
   shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
 --- !u!1 &847011254
 GameObject:
