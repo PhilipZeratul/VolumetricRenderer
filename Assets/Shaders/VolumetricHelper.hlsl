@@ -13,6 +13,8 @@ RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light,
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
 UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
+SamplerState sampler_point_clamp;
+RWTexture2D<float> _EsmShadowMapTex;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;

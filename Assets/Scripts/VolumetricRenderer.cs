@@ -325,21 +325,35 @@ namespace Volumetric
         private RenderTexture shadowVolume; // R: Visibility
         private RenderTargetIdentifier shadowVolumeTargetId;
         private RenderTargetIdentifier shadowMapTextureTargetId;
+        private RenderTexture esmShadowMapTex;
+        private RenderTargetIdentifier esmShadowMapTexTargetId;
 
         private readonly int shadowVolumeId = Shader.PropertyToID("_ShadowVolume");
         private readonly int shadowMapTextureId = Shader.PropertyToID("_ShadowMapTexture");
+        private readonly int esmShadowMapTexId = Shader.PropertyToID("_EsmShadowMapTex");
 
-        private int shadowVolumeDirKernel;
+        private int writeShadowVolumeDirKernel;
+
+        private const int esmShadowMapRes = 256;
 
         private void InitShadowVolumetric()
         {
             CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.R16);
             shadowMapTextureTargetId = new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive);
+            esmShadowMapTex = new RenderTexture(esmShadowMapRes, esmShadowMapRes, 0, RenderTextureFormat.R16)
+            {
+                name = "ESM Shadowmap Texture",
+                filterMode = FilterMode.Bilinear,
+                dimension = TextureDimension.Tex2D,
+                enableRandomWrite = true,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            esmShadowMapTexTargetId = new RenderTargetIdentifier(esmShadowMapTex);
         }
 
         private void WriteShadowVolume()
         {
-            shadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
+            writeShadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
 
             shadowCompute.SetMatrix(clipToWorldMatId, clipToWorldMat);
             shadowCompute.SetInt(volumeWidthId, volumeWidth);
@@ -347,18 +361,25 @@ namespace Volumetric
             shadowCompute.SetInt(volumeDepthId, volumeDepth);
             shadowCompute.SetFloat(volumeDistanceId, volumeDistance);
             shadowCompute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
-            shadowCompute.SetTexture(shadowVolumeDirKernel, shadowVolumeId, shadowVolume);
-
+            
             WriteShadowVolumeEvent?.Invoke();
         }
 
         public void DirLightShadow(CommandBuffer shadowCommand, CommandBuffer dirShadowCommand)
         {
             dirShadowCommand.Clear();
-            dirShadowCommand.SetComputeTextureParam(shadowCompute, shadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
+            int esmShadowMapKernel = shadowCompute.FindKernel("EsmShadowMap");
+            dirShadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, shadowMapTextureId, shadowMapTextureTargetId);
 
             shadowCommand.Clear();
-            shadowCommand.DispatchCompute(shadowCompute, shadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+            shadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, esmShadowMapTexId, esmShadowMapTexTargetId);
+            shadowCommand.DispatchCompute(shadowCompute, esmShadowMapKernel, esmShadowMapRes / 8, esmShadowMapRes / 8, 1);
+
+            //dirShadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
+
+            //shadowCommand.Clear();
+            //shadowCompute.SetTexture(writeShadowVolumeDirKernel, shadowVolumeId, shadowVolume);
+            //shadowCommand.DispatchCompute(shadowCompute, writeShadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
 
