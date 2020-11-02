@@ -6,12 +6,11 @@
 #define PI 3.1415926535
 #define EXPONENT 8.0
 
-
 // Parameters
 RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
 RWTexture3D<float4> _MaterialVolume_A, _PrevMaterialVolume_A; // RGB: Scattering Coef, A: Absorption
 RWTexture3D<float4> _MaterialVolume_B, _PrevMaterialVolume_B; // R: Phase G
-RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: 
+RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: Transmission
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
 UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
@@ -110,20 +109,6 @@ inline float4 getShadowCoord(float4 wpos, float4 cascadeWeights)
     return shadowMapCoordinate;
 }
 
-float SampleShadow(float4 wpos)
-{
-    float4 cascadeWeights = getCascadeWeights_splitSpheres(wpos);
-    float4 shadowCoord = getShadowCoord(wpos, cascadeWeights);
-
-    //1 tap hard shadow
-    //float shadow = _ShadowMapTexture.Sample(sampler_ShadowMapTexture, shadowCoord).r;
-    float shadow = UNITY_SAMPLE_SHADOW(_ShadowMapTexture, shadowCoord);
-    shadow = lerp(_LightShadowData.r, 1.0, shadow);
-
-    float4 res = shadow;
-    return res;
-}
-
 float SampleEsmShadow(float4 wpos)
 {
     float4 cascadeWeights = getCascadeWeights_splitSpheres(wpos);
@@ -132,11 +117,6 @@ float SampleEsmShadow(float4 wpos)
     float reveiver = exp((1 - shadowCoord.z) * EXPONENT);
     float occluder = _EsmShadowMapTex.SampleLevel(sampler_bilinear_clamp, shadowCoord.xy, 0);
     float shadow = saturate(occluder / reveiver);
-
-
-    /*float reveiver = shadowCoord.z;
-    float occluder = _EsmShadowMapTex.SampleLevel(sampler_bilinear_clamp, shadowCoord.xy, 0);
-    float shadow = saturate(occluder < reveiver);*/
 
     float4 res = shadow;
     return res;

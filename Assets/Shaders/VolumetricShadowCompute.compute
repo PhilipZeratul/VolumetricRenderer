@@ -17,7 +17,6 @@ void EsmShadowMap(uint3 pos : SV_DispatchThreadID)
     accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 2))) * EXPONENT);
 
     _EsmShadowMapUav[pos.xy] = dot(accum, 1 / 16.0f);
-    //_EsmShadowMapUav[pos.xy] = _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 0));
 }
 
 [numthreads(8, 8, 8)]

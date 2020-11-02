@@ -381,11 +381,6 @@ namespace Volumetric
             shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
             shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, esmShadowMapTexId, esmShadowMapTexTargetId);
             shadowCommand.DispatchCompute(shadowCompute, writeShadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
-
-            //dirShadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
-            //shadowCommand.Clear();
-            //shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
-            //shadowCommand.DispatchCompute(shadowCompute, writeShadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
 
