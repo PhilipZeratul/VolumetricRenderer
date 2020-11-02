@@ -116,7 +116,7 @@
             {
                 float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
                 float4 color = UNITY_SAMPLE_TEX2D(_AccumulationTex, IN.uv);
-                //color = lerp(mainTex, color, color.a);
+                color = lerp(mainTex, color, color.a);
                 //color = mainTex;
                 return color;
             }

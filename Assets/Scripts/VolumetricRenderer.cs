@@ -331,16 +331,18 @@ namespace Volumetric
         private readonly int shadowVolumeId = Shader.PropertyToID("_ShadowVolume");
         private readonly int shadowMapTextureId = Shader.PropertyToID("_ShadowMapTexture");
         private readonly int esmShadowMapTexId = Shader.PropertyToID("_EsmShadowMapTex");
+        private readonly int esmShadowMapUavId = Shader.PropertyToID("_EsmShadowMapUav");
 
         private int writeShadowVolumeDirKernel;
+        private int esmShadowMapKernel;
 
         private const int esmShadowMapRes = 256;
 
         private void InitShadowVolumetric()
         {
-            CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.R16);
+            CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.RHalf);
             shadowMapTextureTargetId = new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive);
-            esmShadowMapTex = new RenderTexture(esmShadowMapRes, esmShadowMapRes, 0, RenderTextureFormat.R16)
+            esmShadowMapTex = new RenderTexture(esmShadowMapRes, esmShadowMapRes, 0, RenderTextureFormat.RHalf)
             {
                 name = "ESM Shadowmap Texture",
                 filterMode = FilterMode.Bilinear,
@@ -348,12 +350,14 @@ namespace Volumetric
                 enableRandomWrite = true,
                 wrapMode = TextureWrapMode.Clamp
             };
+            esmShadowMapTex.Create();
             esmShadowMapTexTargetId = new RenderTargetIdentifier(esmShadowMapTex);
         }
 
         private void WriteShadowVolume()
         {
             writeShadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
+            esmShadowMapKernel = shadowCompute.FindKernel("EsmShadowMap");
 
             shadowCompute.SetMatrix(clipToWorldMatId, clipToWorldMat);
             shadowCompute.SetInt(volumeWidthId, volumeWidth);
@@ -361,24 +365,26 @@ namespace Volumetric
             shadowCompute.SetInt(volumeDepthId, volumeDepth);
             shadowCompute.SetFloat(volumeDistanceId, volumeDistance);
             shadowCompute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
-            
+
             WriteShadowVolumeEvent?.Invoke();
         }
 
         public void DirLightShadow(CommandBuffer shadowCommand, CommandBuffer dirShadowCommand)
         {
             dirShadowCommand.Clear();
-            int esmShadowMapKernel = shadowCompute.FindKernel("EsmShadowMap");
             dirShadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, shadowMapTextureId, shadowMapTextureTargetId);
 
             shadowCommand.Clear();
-            shadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, esmShadowMapTexId, esmShadowMapTexTargetId);
+            shadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, esmShadowMapUavId, esmShadowMapTexTargetId);
             shadowCommand.DispatchCompute(shadowCompute, esmShadowMapKernel, esmShadowMapRes / 8, esmShadowMapRes / 8, 1);
 
-            //dirShadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
+            shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
+            shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, esmShadowMapTexId, esmShadowMapTexTargetId);
+            shadowCommand.DispatchCompute(shadowCompute, writeShadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
 
+            //dirShadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
             //shadowCommand.Clear();
-            //shadowCompute.SetTexture(writeShadowVolumeDirKernel, shadowVolumeId, shadowVolume);
+            //shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
             //shadowCommand.DispatchCompute(shadowCompute, writeShadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }

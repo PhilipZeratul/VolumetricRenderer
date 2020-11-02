@@ -4,6 +4,8 @@
 #include "UnityCG.cginc"
 
 #define PI 3.1415926535
+#define EXPONENT 8.0
+
 
 // Parameters
 RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
@@ -14,7 +16,9 @@ RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittanc
 
 UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
 SamplerState sampler_point_clamp;
-RWTexture2D<float> _EsmShadowMapTex;
+SamplerState sampler_bilinear_clamp;
+RWTexture2D<float> _EsmShadowMapUav;
+Texture2D _EsmShadowMapTex;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -115,6 +119,24 @@ float SampleShadow(float4 wpos)
     //float shadow = _ShadowMapTexture.Sample(sampler_ShadowMapTexture, shadowCoord).r;
     float shadow = UNITY_SAMPLE_SHADOW(_ShadowMapTexture, shadowCoord);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
+
+    float4 res = shadow;
+    return res;
+}
+
+float SampleEsmShadow(float4 wpos)
+{
+    float4 cascadeWeights = getCascadeWeights_splitSpheres(wpos);
+    float4 shadowCoord = getShadowCoord(wpos, cascadeWeights);
+
+    float reveiver = exp((1 - shadowCoord.z) * EXPONENT);
+    float occluder = _EsmShadowMapTex.SampleLevel(sampler_bilinear_clamp, shadowCoord.xy, 0);
+    float shadow = saturate(occluder / reveiver);
+
+
+    /*float reveiver = shadowCoord.z;
+    float occluder = _EsmShadowMapTex.SampleLevel(sampler_bilinear_clamp, shadowCoord.xy, 0);
+    float shadow = saturate(occluder < reveiver);*/
 
     float4 res = shadow;
     return res;

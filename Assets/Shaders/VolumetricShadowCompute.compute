@@ -5,25 +5,25 @@
 
 #include "VolumetricHelper.hlsl"
 
-#define EXPONENT 1
-
 // Kernels
 [numthreads(8, 8, 1)]
 void EsmShadowMap(uint3 pos : SV_DispatchThreadID)
 {
     float2 uv = pos.xy / 256.0;
     float4 accum = 0.0f;
-    accum += exp(_ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(0, 0)) * EXPONENT);
-    accum += exp(_ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 0)) * EXPONENT);
-    accum += exp(_ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(0, 2)) * EXPONENT);
-    accum += exp(_ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 2)) * EXPONENT);
-    _EsmShadowMapTex[pos.xy] = dot(accum, 1 / 16.0f);
+    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(0, 0))) * EXPONENT);
+    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 0))) * EXPONENT);
+    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(0, 2))) * EXPONENT);
+    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 2))) * EXPONENT);
+
+    _EsmShadowMapUav[pos.xy] = dot(accum, 1 / 16.0f);
+    //_EsmShadowMapUav[pos.xy] = _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 0));
 }
 
 [numthreads(8, 8, 8)]
 void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
     float4 worldPos = FroxelPos2WorldPos(pos);
-    float visibility = SampleShadow(worldPos);
+    float visibility = SampleEsmShadow(worldPos);
     _ShadowVolume[pos] = visibility;
 }
