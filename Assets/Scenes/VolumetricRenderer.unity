@@ -237,7 +237,7 @@ MonoBehaviour:
   blendType: 0
   scatteringColor: {r: 1, g: 1, b: 1, a: 0}
   absorption: 0.511
-  phaseG: 0.99
+  phaseG: 0.3
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0
