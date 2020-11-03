@@ -98,13 +98,13 @@ namespace Volumetric
             command.Clear();
             command.BeginSample("Volumetric Renderer");
 
-            TemporalBlendShadowVolume();
+            //TemporalBlendShadowVolume();
 
             WriteMaterialVolume();
-            TemporalBlendMaterialVolume();
+            //TemporalBlendMaterialVolume();
 
             WriteScatterVolume();
-            TemporalBlendScatterVolume();
+            //TemporalBlendScatterVolume();
 
             Accumulate();
 
@@ -204,6 +204,7 @@ namespace Volumetric
             GetJitterdMatrix(ref froxelProjMat);
 
             viewMat = Matrix4x4.TRS(-mainCamera.transform.position, Quaternion.Inverse(mainCamera.transform.rotation), new Vector3(1, 1, 1));
+            //viewMat = Matrix4x4.TRS(-mainCamera.transform.position, mainCamera.transform.rotation, new Vector3(1, 1, 1));
             clipToWorldMat = (froxelProjMat * viewMat).inverse;
 
             reprojMat = prevClipToWorldMat.inverse * clipToWorldMat;

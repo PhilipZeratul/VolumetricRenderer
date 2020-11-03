@@ -30,7 +30,7 @@ namespace Volumetric
         [SerializeField]
         [Range(0.00001f, 1.0f)]
         private float absorption = 0.58f;
-        [Range(0.0f, 1.0f)]
+        [Range(0.0f, 0.9f)]
         public float phaseG = 0.002f;
 
         // Global emissive intensity

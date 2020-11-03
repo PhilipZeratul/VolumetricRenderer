@@ -237,7 +237,7 @@ MonoBehaviour:
   blendType: 0
   scatteringColor: {r: 1, g: 1, b: 1, a: 0}
   absorption: 0.511
-  phaseG: 0.207
+  phaseG: 1
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0
@@ -618,13 +618,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 534669902}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.41, y: -0.71, z: -3.84}
+  m_LocalRotation: {x: 0.054826807, y: -0.04161245, z: 0.0022109675, w: 0.99762595}
+  m_LocalPosition: {x: 3.624712, y: -2.3662329, z: -7.2523956}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 10.159, y: -395.09302, z: -360.233}
 --- !u!114 &534669906
 MonoBehaviour:
   m_ObjectHideFlags: 0
