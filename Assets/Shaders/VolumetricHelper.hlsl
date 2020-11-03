@@ -7,17 +7,19 @@
 #define EXPONENT 8.0
 
 // Parameters
+SamplerState sampler_point_clamp;
+SamplerState sampler_bilinear_clamp;
+
 RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
 RWTexture3D<float4> _MaterialVolume_A, _PrevMaterialVolume_A; // RGB: Scattering Coef, A: Absorption
 RWTexture3D<float4> _MaterialVolume_B, _PrevMaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: Transmission
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
-UNITY_DECLARE_SHADOWMAP(_ShadowMapTexture);
-SamplerState sampler_point_clamp;
-SamplerState sampler_bilinear_clamp;
 RWTexture2D<float> _EsmShadowMapUav;
 Texture2D _EsmShadowMapTex;
+Texture2D _ShadowMapTexture;
+Texture2D _CameraDepthTexture;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -56,17 +58,22 @@ float4 FroxelPos2ClipPos(uint3 froxelPos)
     clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
     clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0); 
     clipPos.w = 1;
-    float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
-    clipPos *= z;
     return clipPos;
 }
 
 float4 FroxelPos2WorldPos(uint3 froxelPos)
 {
     float4 clipPos = FroxelPos2ClipPos(froxelPos);
+    float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
+    clipPos *= z;
     float4 worldPos = mul(_ClipToWorldMat, clipPos);
     worldPos /= worldPos.w;
     return worldPos;
+}
+
+float2 FroxelPos2Uv(uint2 froxelPos)
+{
+    return float2((float)froxelPos.x / _VolumeWidth, (float)froxelPos.y / _VolumeHeight);
 }
 
 float Rgb2Gray(float3 c)

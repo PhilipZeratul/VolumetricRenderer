@@ -533,6 +533,7 @@ namespace Volumetric
         private RenderTargetIdentifier accumulationTexTargetId;
 
         private readonly int accumulationTexId = Shader.PropertyToID("_AccumulationTex");
+        private readonly int cameraDepthTexId = Shader.PropertyToID("_CameraDepthTexture");
 
         private int accumulationKernel;
 
@@ -559,6 +560,7 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, accumulationKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, accumulationTexId, accumulationTexTargetId);
+            compute.SetTextureFromGlobal(accumulationKernel, cameraDepthTexId, cameraDepthTexId);
 
             command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
         }
