@@ -237,7 +237,7 @@ MonoBehaviour:
   blendType: 0
   scatteringColor: {r: 1, g: 1, b: 1, a: 0}
   absorption: 0.511
-  phaseG: 1
+  phaseG: 0.99
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0
@@ -618,13 +618,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 534669902}
-  m_LocalRotation: {x: 0.054826807, y: -0.04161245, z: 0.0022109675, w: 0.99762595}
-  m_LocalPosition: {x: 3.624712, y: -2.3662329, z: -7.2523956}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 10.159, y: -395.09302, z: -360.233}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &534669906
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -642,7 +642,7 @@ MonoBehaviour:
   volumeDistance: 100
   shader: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
   compute: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
-  temporalJitterScale: 0.001
+  temporalJitterScale: 0.00001
   temporalBlendAlpha: 0.05
   temporalCount: 4
   shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
@@ -754,7 +754,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 961599037}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.495, y: 0.87, z: 10.65}
+  m_LocalPosition: {x: -3.1, y: 0.87, z: 14.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 994339997}
