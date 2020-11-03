@@ -267,7 +267,7 @@ namespace Volumetric
 
         private void CreatePrevVolumes()
         {
-            CreateVolume(ref prevShadowVolume, ref prevShadowVolumeTargetId, "Prev Shadow Volume", RenderTextureFormat.R16);
+            CreateVolume(ref prevShadowVolume, ref prevShadowVolumeTargetId, "Prev Shadow Volume", RenderTextureFormat.RHalf);
             CreateVolume(ref prevMaterialVolumeA, ref prevMaterialVolumeATargetId, "Prev Material Volume A");
             CreateVolume(ref prevMaterialVolumeB, ref prevMaterialVolumeBTargetId, "Prev Material Volume B");
             CreateVolume(ref prevScatterVolume, ref prevScatterVolumeTargetId, "Prev Scatter Volume");

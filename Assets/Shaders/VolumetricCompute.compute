@@ -74,7 +74,7 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
         // TODO: Simplify stepLength calculaiton?
         float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
         float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
-        float stepLength = nextWorldPos.z - curWorldPos.z;
+        float stepLength = distance(nextWorldPos, curWorldPos);
 
         transmittance *= exp(-extinction * stepLength);
         accumuLight += inScatter * scatterCoef * transmittance;
