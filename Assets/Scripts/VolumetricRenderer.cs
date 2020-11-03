@@ -205,10 +205,7 @@ namespace Volumetric
 
             Transform tr = mainCamera.transform;
             Matrix4x4 lookMatrix = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
-            Matrix4x4 scaleMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, 1, 1));
-            viewMat = scaleMatrix * lookMatrix.inverse;
-
-            clipToWorldMat = (froxelProjMat * viewMat).inverse;
+            clipToWorldMat = lookMatrix * froxelProjMat.inverse;
 
             reprojMat = prevClipToWorldMat.inverse * clipToWorldMat;
             prevClipToWorldMat = clipToWorldMat;
