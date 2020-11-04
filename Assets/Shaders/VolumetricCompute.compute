@@ -58,21 +58,16 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 void Accumulation(uint2 pos : SV_DispatchThreadID)
 {
     float3 accumuLight = 0.0;
-    float transmittance = 1.0;
+    float totalTransmittance = 1.0;
+    float alpha = 0.0;
 
     float2 uv = FroxelPos2Uv(pos);
     float depth = 1 - _CameraDepthTexture.SampleLevel(sampler_bilinear_clamp, uv, 0).r;
+    float maxZ = Depth2FroxelPosZ(depth);
 
-    for (int i = 0; i < _VolumeDepth - 1; i++)
+    for (int i = 0; i < maxZ; i++)
     {
         uint3 curPos = uint3(pos.xy, i);
-
-        float curDepth = FroxelPos2ClipPos(curPos).z;
-        if (curDepth > depth)
-        {
-            break;
-        }
-
         uint3 nextPos = uint3(pos.xy, i + 1);
 
         float4 materialA = _MaterialVolume_A[curPos];
@@ -86,11 +81,13 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
         float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
         float stepLength = distance(nextWorldPos, curWorldPos);
 
-        transmittance *= exp(-extinction * stepLength);
-        accumuLight += inScatter * scatterCoef * transmittance;// * stepLength;
+        float transmittance = exp(-extinction * stepLength);
+        totalTransmittance *= transmittance;
+        accumuLight += inScatter * totalTransmittance * stepLength;
+        alpha += (1 - transmittance) * (1 - alpha);
     }
 
-    _AccumulationTex[pos] = float4(accumuLight, transmittance);
+    _AccumulationTex[pos] = float4(accumuLight, alpha);
 }
 
 [numthreads(8, 8, 8)]

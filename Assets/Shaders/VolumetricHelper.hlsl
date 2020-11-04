@@ -54,9 +54,9 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
 float4 FroxelPos2ClipPos(uint3 froxelPos)
 {
     float4 clipPos = 0;
-    clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
-    clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
-    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0); 
+    clipPos.x = Remap((float)froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
+    clipPos.y = Remap((float)froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
+    clipPos.z = Remap((float)froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
     clipPos.w = 1;
     return clipPos;
 }
@@ -74,6 +74,12 @@ float4 FroxelPos2WorldPos(uint3 froxelPos)
 float2 FroxelPos2Uv(uint2 froxelPos)
 {
     return float2((float)froxelPos.x / _VolumeWidth, (float)froxelPos.y / _VolumeHeight);
+}
+
+float Depth2FroxelPosZ(float depth)
+{
+    float z = floor(Remap(depth, 0.0, 1.0, 0.0, _VolumeDepth - 1));
+    return z;
 }
 
 float Rgb2Gray(float3 c)
