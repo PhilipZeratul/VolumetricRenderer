@@ -19,7 +19,7 @@ namespace Volumetric
         public int maxSteps = 50;
         [Range(0.1f, 10f)]
         public float maxDistance = 10f;
-        [Range(10f, 500f)]
+        [Range(10f, 1000f)]
         public float volumeDistance = 100f; // 50 - 100m in AC4
 
         //
@@ -221,22 +221,6 @@ namespace Volumetric
             command.SetComputeMatrixParam(compute, clipToWorldMatId, clipToWorldMat);
             command.SetComputeMatrixParam(compute, reprojMatId, reprojMat);
         }
-
-#if _DEBUG
-
-        private void SetPropertyDebug()
-        {
-            volumetricMaterial.SetTexture(materialVolumeAId, materialVolumeA);
-            volumetricMaterial.SetTexture(materialVolumeBId, materialVolumeB);
-            volumetricMaterial.SetTexture(scatterVolumeId, scatterVolume);
-            volumetricMaterial.SetTexture(accumulationTexId, accumulationTex);
-        }
-
-        private void RenderDebug(RenderTexture source, RenderTexture destination, Material mat)
-        {
-            command.Blit(source, destination, mat, 1);
-        }
-#endif
     }
 
     // Temporal Blend
@@ -565,4 +549,72 @@ namespace Volumetric
             command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
         }
     }
+
+#if _DEBUG
+    // Debug
+    public partial class VolumetricRenderer
+    {
+        [Range(0, volumeDepth - 1)]
+        public int slice = volumeDepth - 1;
+
+        private void SetPropertyDebug()
+        {
+            volumetricMaterial.SetTexture(materialVolumeAId, materialVolumeA);
+            volumetricMaterial.SetTexture(materialVolumeBId, materialVolumeB);
+            volumetricMaterial.SetTexture(scatterVolumeId, scatterVolume);
+            volumetricMaterial.SetTexture(accumulationTexId, accumulationTex);
+        }
+
+        private void RenderDebug(RenderTexture source, RenderTexture destination, Material mat)
+        {
+            command.Blit(source, destination, mat, 1);
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (Application.isPlaying)
+            {
+                Color oldColor = Gizmos.color;
+
+                Gizmos.color = new Color(0.1f, 0.8f, 0.1f, 0.4f);
+                Vector3 bl = FroxelPos2WorldPos(new Vector3(0, 0, slice));
+                Vector3 tr = FroxelPos2WorldPos(new Vector3(volumeWidth - 1, volumeHeight - 1, slice));
+
+                Vector3 center = (bl + tr) / 2.0f;
+                Vector3 size = tr - bl;
+                size.z = 0.0001f;
+
+                Gizmos.DrawCube(center, size);
+                Gizmos.color = oldColor;
+            }
+        }
+
+        float Remap(float value, float inputFrom, float inputTo, float outputFrom, float outputTo)
+        {
+            return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
+        }
+
+        Vector4 FroxelPos2ClipPos(Vector3 froxelPos)
+        {
+            Vector4 clipPos = new Vector4
+            {
+                x = Remap((float)froxelPos.x, 0.0f, volumeWidth - 1, -1.0f, 1.0f),
+                y = Remap((float)froxelPos.y, 0.0f, volumeHeight - 1, -1.0f, 1.0f),
+                z = Remap((float)froxelPos.z, 0.0f, volumeDepth - 1, 0.0f, 1.0f),
+                w = 1
+            };
+            return clipPos;
+        }
+
+        Vector4 FroxelPos2WorldPos(Vector3 froxelPos)
+        {
+            Vector4 clipPos = FroxelPos2ClipPos(froxelPos);
+            float z = Remap(clipPos.z, 0.0f, 1.0f, mainCamera.nearClipPlane, volumeDistance);
+            clipPos *= z;
+            Vector4 worldPos = clipToWorldMat * clipPos;
+            worldPos /= worldPos.w;
+            return worldPos;
+        }
+    }
+#endif
 }

@@ -646,6 +646,7 @@ MonoBehaviour:
   temporalBlendAlpha: 0.05
   temporalCount: 4
   shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
+  slice: 63
 --- !u!1 &847011254
 GameObject:
   m_ObjectHideFlags: 0
