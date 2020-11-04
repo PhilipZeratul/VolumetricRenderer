@@ -578,13 +578,18 @@ namespace Volumetric
 
                 Gizmos.color = new Color(0.1f, 0.8f, 0.1f, 0.4f);
                 Vector3 bl = FroxelPos2WorldPos(new Vector3(0, 0, slice));
+                Vector3 br = FroxelPos2WorldPos(new Vector3(volumeWidth - 1, 0, slice));
+                Vector3 tl = FroxelPos2WorldPos(new Vector3(0, volumeHeight - 1, slice));
                 Vector3 tr = FroxelPos2WorldPos(new Vector3(volumeWidth - 1, volumeHeight - 1, slice));
 
-                Vector3 center = (bl + tr) / 2.0f;
-                Vector3 size = tr - bl;
-                size.z = 0.0001f;
-
-                Gizmos.DrawCube(center, size);
+                Mesh sliceMesh = new Mesh();
+                sliceMesh.RecalculateBounds();
+                sliceMesh.vertices = new Vector3[] { tl, bl, br, tr };
+                sliceMesh.triangles = new int[] { 0, 3, 1, 1, 3, 2, 0, 1, 3, 1, 2, 3 };
+                //sliceMesh.normals = new Vector3[] { -Vector3.forward, -Vector3.forward, -Vector3.forward, -Vector3.forward };
+                sliceMesh.RecalculateNormals();
+                sliceMesh.RecalculateBounds();
+                Gizmos.DrawMesh(sliceMesh, Vector3.zero, Quaternion.identity, Vector3.one);
                 Gizmos.color = oldColor;
             }
         }
