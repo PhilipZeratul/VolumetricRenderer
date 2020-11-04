@@ -300,7 +300,7 @@ namespace Volumetric
     }
 
     // Shadow Volume
-        public partial class VolumetricRenderer
+    public partial class VolumetricRenderer
     {
         public event Action WriteShadowVolumeEvent;
 
