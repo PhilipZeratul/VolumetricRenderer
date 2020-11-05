@@ -101,7 +101,7 @@
                 float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
                 float4 color = lerp(mainTex, accumuLight, alpha);
 
-                color = accumuLight;
+                //color = accumuLight;
 
                 return color;
             }

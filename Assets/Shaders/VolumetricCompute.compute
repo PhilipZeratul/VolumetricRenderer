@@ -4,9 +4,9 @@
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel Accumulation
-#pragma kernel TemporalBlendShadowVolume
-#pragma kernel TemporalBlendMaterialVolume
-#pragma kernel TemporalBlendScatterVolume
+//#pragma kernel TemporalBlendShadowVolume
+//#pragma kernel TemporalBlendMaterialVolume
+//#pragma kernel TemporalBlendScatterVolume
 
 #include "VolumetricHelper.hlsl"
 
@@ -90,27 +90,27 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
     _AccumulationTex[pos] = float4(accumuLight, alpha);
 }
 
-[numthreads(8, 8, 8)]
-void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
-{
-    uint3 reprojPos = mul(_ReprojMat, pos);
-
-    _ShadowVolume[pos] = _ShadowVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevShadowVolume[pos] * _TemporalBlendAlpha;
-}
-
-[numthreads(8, 8, 8)]
-void TemporalBlendMaterialVolume(uint3 pos : SV_DispatchThreadID)
-{
-    uint3 reprojPos = mul(_ReprojMat, pos);
-
-    _MaterialVolume_A[pos] = _MaterialVolume_A[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_A[pos] * _TemporalBlendAlpha;
-    _MaterialVolume_B[pos] = _MaterialVolume_B[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_B[pos] * _TemporalBlendAlpha;
-}
-
-[numthreads(8, 8, 8)]
-void TemporalBlendScatterVolume(uint3 pos : SV_DispatchThreadID)
-{
-    uint3 reprojPos = mul(_ReprojMat, pos);
-
-    _ScatterVolume[pos] = _ScatterVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevScatterVolume[pos] * _TemporalBlendAlpha;
-}
+//[numthreads(8, 8, 8)]
+//void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
+//{
+//    uint3 reprojPos = mul(_ReprojMat, pos);
+//
+//    _ShadowVolume[pos] = _ShadowVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevShadowVolume[pos] * _TemporalBlendAlpha;
+//}
+//
+//[numthreads(8, 8, 8)]
+//void TemporalBlendMaterialVolume(uint3 pos : SV_DispatchThreadID)
+//{
+//    uint3 reprojPos = mul(_ReprojMat, pos);
+//
+//    _MaterialVolume_A[pos] = _MaterialVolume_A[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_A[pos] * _TemporalBlendAlpha;
+//    _MaterialVolume_B[pos] = _MaterialVolume_B[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_B[pos] * _TemporalBlendAlpha;
+//}
+//
+//[numthreads(8, 8, 8)]
+//void TemporalBlendScatterVolume(uint3 pos : SV_DispatchThreadID)
+//{
+//    uint3 reprojPos = mul(_ReprojMat, pos);
+//
+//    _ScatterVolume[pos] = _ScatterVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevScatterVolume[pos] * _TemporalBlendAlpha;
+//}

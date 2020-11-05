@@ -33,7 +33,7 @@ float _NearPlane, _VolumeDistance;
 
 float4x4 _ClipToWorldMat;
 float4x4 _WorldToClipMat;
-float4x4 _ReprojMat;
+float _TemporalOffset;
 
 float _TemporalBlendAlpha;
 
@@ -52,17 +52,18 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
 
 // TODO: Use exponential depth mapping to increase near camera precision.
 // (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1) scaled with z.
-float4 FroxelPos2ClipPos(uint3 froxelPos)
+float4 FroxelPos2ClipPos(float3 froxelPos)
 {
+    froxelPos.z -= _TemporalOffset;
     float4 clipPos = 0;
-    clipPos.x = Remap((float)froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
-    clipPos.y = Remap((float)froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
-    clipPos.z = Remap((float)froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
+    clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
+    clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
+    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
     clipPos.w = 1;
     return clipPos;
 }
 
-float4 FroxelPos2WorldPos(uint3 froxelPos)
+float4 FroxelPos2WorldPos(float3 froxelPos)
 {
     float4 clipPos = FroxelPos2ClipPos(froxelPos);
     float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
@@ -72,9 +73,9 @@ float4 FroxelPos2WorldPos(uint3 froxelPos)
     return worldPos;
 }
 
-float2 FroxelPos2Uv(uint2 froxelPos)
+float2 FroxelPos2Uv(float2 froxelPos)
 {
-    return float2((float)froxelPos.x / _VolumeWidth, (float)froxelPos.y / _VolumeHeight);
+    return float2(froxelPos.x / _VolumeWidth, froxelPos.y / _VolumeHeight);
 }
 
 float3 ClipPos2FroxelPos(float4 clipPos)
@@ -99,6 +100,7 @@ float3 ClipPos2FroxelUvw(float4 clipPos)
     float3 froxelPos = clipPos.xyz;
     froxelPos.x = (froxelPos.x + 1.0) / 2.0;
     froxelPos.y = (froxelPos.y + 1.0) / 2.0;
+    froxelPos.z += _TemporalOffset;
     return froxelPos;
 }
 

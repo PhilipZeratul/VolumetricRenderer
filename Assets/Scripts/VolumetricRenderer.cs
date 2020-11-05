@@ -86,7 +86,9 @@ namespace Volumetric
         {
             CalculateMatrices();
             SetPropertyGeneral();
-            
+
+            CalcTemporalOffset();
+
             ClearAllVolumes();
             WriteShadowVolume();
         }
@@ -126,7 +128,7 @@ namespace Volumetric
 
         private int clearKernel;
         private Matrix4x4 froxelProjMat;
-        private Matrix4x4 viewMat;
+        private Matrix4x4 lookMatrix;
         private Matrix4x4 clipToWorldMat;
         private Matrix4x4 worldToClipMat;
 
@@ -186,39 +188,31 @@ namespace Volumetric
                 new Vector4(0, 0, c, 1),
                 new Vector4(0, 0, d, 0));
 
-            GetJitterdMatrix(ref froxelProjMat);
-
             Transform tr = mainCamera.transform;
-            Matrix4x4 lookMatrix = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
+            lookMatrix = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
             clipToWorldMat = lookMatrix * froxelProjMat.inverse;
             worldToClipMat = clipToWorldMat.inverse;
-
-            reprojMat = prevClipToWorldMat.inverse * clipToWorldMat;
-            prevClipToWorldMat = clipToWorldMat;
         }
 
         private void SetPropertyGeneral()
         {
-            command.SetComputeIntParam(compute, volumeWidthId, volumeWidth);
-            command.SetComputeIntParam(compute, volumeHeightId, volumeHeight);
-            command.SetComputeIntParam(compute, volumeDepthId, volumeDepth);
-            command.SetComputeFloatParam(compute, nearPlaneId, mainCamera.nearClipPlane);
-            command.SetComputeFloatParam(compute, volumeDistanceId, volumeDistance);
-            command.SetComputeMatrixParam(compute, clipToWorldMatId, clipToWorldMat);
-            command.SetComputeMatrixParam(compute, reprojMatId, reprojMat);
+            compute.SetInt(volumeWidthId, volumeWidth);
+            compute.SetInt(volumeHeightId, volumeHeight);
+            compute.SetInt(volumeDepthId, volumeDepth);
+            compute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
+            compute.SetFloat(volumeDistanceId, volumeDistance);
+            compute.SetMatrix(clipToWorldMatId, clipToWorldMat);
         }
     }
 
     // Temporal Blend
     public partial class VolumetricRenderer
     {
-        public float temporalJitterScale = 0.1f;
         [Range(0f, 1f)]
         public float temporalBlendAlpha = 0.05f;
-        public int temporalCount = 4;
+        public int temporalCount = 16;
+        private float temporalOffset; // 0f - 1f
         private int jitterIndex = 1;
-        private Matrix4x4 reprojMat;
-        private Matrix4x4 prevClipToWorldMat;
 
         private RenderTexture prevShadowVolume;
         private RenderTargetIdentifier prevShadowVolumeTargetId;
@@ -234,7 +228,7 @@ namespace Volumetric
         private readonly int prevMaterialVolumeBId = Shader.PropertyToID("_PrevMaterialVolume_B");
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
-        private readonly int reprojMatId = Shader.PropertyToID("_ReprojMat");
+        private readonly int temporalOffsetId = Shader.PropertyToID("_TemporalOffset");
 
         private void CreatePrevVolumes()
         {
@@ -244,14 +238,19 @@ namespace Volumetric
             CreateVolume(ref prevScatterVolume, ref prevScatterVolumeTargetId, "Prev Scatter Volume");
         }
 
-        private void GetJitterdMatrix(ref Matrix4x4 projMat)
+        // TODO: Use dither.
+        private void CalcTemporalOffset()
         {
             if (jitterIndex > temporalCount)
             {
-                jitterIndex = -temporalCount;
+                jitterIndex = 0;
             }
-            projMat[2, 3] += temporalJitterScale * jitterIndex;
+            temporalOffset = (float)jitterIndex / (float)temporalCount;
             jitterIndex++;
+
+            compute.SetFloat(temporalOffsetId, temporalOffset);
+            shadowCompute.SetFloat(temporalOffsetId, temporalOffset);
+            //command.SetComputeFloatParam(compute, temporalOffsetId, temporalOffset);
         }
 
         private void TemporalBlendShadowVolume()
