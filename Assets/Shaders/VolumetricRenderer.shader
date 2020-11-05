@@ -19,7 +19,10 @@
         {
             float4 position : SV_POSITION;
             float2 uv : TEXCOORD0;
+            float3 viewDir : TEXCOORD1;
         };
+
+        float4 _ScreenQuadCorners[3];
 
         // Postprocessing https://www.reddit.com/r/gamedev/comments/2j17wk/a_slightly_faster_bufferless_vertex_shader_trick/
         v2f vert(appdata v)
@@ -35,6 +38,8 @@
             #if UNITY_UV_STARTS_AT_TOP
                 o.uv = o.uv * float2(1.0, -1.0) + float2(0.0, 1.0);
             #endif
+
+            o.viewDir = _ScreenQuadCorners[v.id].xyz;
 
             return o;
         }
@@ -54,37 +59,50 @@
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "VolumetricHelper.hlsl"
 
             UNITY_DECLARE_TEX2D(_MainTex);
-            UNITY_DECLARE_TEX2D(_CameraDepthTexture);
+            Texture3D _ScatterVolumeSrv;
 
-            float4 _ScreenQuadCorners[3];
             int _MaxSteps;
-            float _MaxDistance;
 
             float4 frag(v2f IN) : SV_Target
             {
-                /*float3 viewDirWS = IN.viewDir;
+                float3 viewDirWS = IN.viewDir;
 
-                float depth = UNITY_SAMPLE_TEX2D(_CameraDepthTexture, IN.uv).r;
+                float depth = _CameraDepthTexture.SampleLevel(sampler_bilinear_clamp, IN.uv, 0).r;
                 float viewDepth = LinearEyeDepth(depth);
 
                 float3 currentPos = _WorldSpaceCameraPos.xyz;
-                float stepDist = _MaxDistance / _MaxSteps;
+                float stepDist = _VolumeDistance / _MaxSteps;
                 float accumDist = 0.0;
+
+                float accumuLight = 0.0;
+                float totalTransmittance = 1.0;
+                float alpha = 0.0;
                 
                 for (int i = 0; i < _MaxSteps && accumDist < viewDepth; i++)
                 {
                     currentPos += stepDist * viewDirWS;
+                    float3 froxelUvw = WorldPos2FroxelUvw(currentPos);
+
+                    float4 scatterVolume = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw, 0);
+                    float3 inScatter = scatterVolume.rgb;
+                    float extinction = scatterVolume.a;
+
+                    float transmittance = exp(-extinction * stepDist);
+                    totalTransmittance *= transmittance;
+                    accumuLight += inScatter * totalTransmittance * stepDist;
+                    alpha += (1 - transmittance) * (1 - alpha);
+
                     accumDist += stepDist;
                 }
 
                 float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
+                float4 color = lerp(mainTex, accumuLight, alpha);
 
-                float fog = exp(-accumDist * 0.3);
-                float4 color = lerp(1, mainTex, fog);*/
-                float4 color = float4(IN.uv, 0, 1);
-                
+                color = accumuLight;
+
                 return color;
             }
             ENDCG

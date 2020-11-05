@@ -15,10 +15,8 @@ namespace Volumetric
     public partial class VolumetricRenderer : MonoBehaviour
     {
         // Parameters
-        [Range(0f, 100f)]
+        [Range(0f, 200f)]
         public int maxSteps = 50;
-        [Range(0.1f, 10f)]
-        public float maxDistance = 10f;
         [Range(10f, 1000f)]
         public float volumeDistance = 100f; // 50 - 100m in AC4
 
@@ -108,26 +106,13 @@ namespace Volumetric
 
             Accumulate();
 
-            //camera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, frustumCorners);
-
-            //screenTriangleCorners[0] = new Vector4(frustumCorners[1].x, frustumCorners[1].y, camera.farClipPlane, 0);
-            //screenTriangleCorners[1] = new Vector4(frustumCorners[0].x, -3.0f * frustumCorners[1].y, camera.farClipPlane, 0);
-            //screenTriangleCorners[2] = new Vector4(3.0f * frustumCorners[2].x, frustumCorners[1].y, camera.farClipPlane, 0);
-
-            //screenTriangleCorners[0] = camera.transform.TransformVector(screenTriangleCorners[0]) / camera.farClipPlane;
-            //screenTriangleCorners[1] = camera.transform.TransformVector(screenTriangleCorners[1]) / camera.farClipPlane;
-            //screenTriangleCorners[2] = camera.transform.TransformVector(screenTriangleCorners[2]) / camera.farClipPlane;
-
-            //sheet.properties.SetVectorArray("_ScreenQuadCorners", screenTriangleCorners);
-            //sheet.properties.SetInt("_MaxSteps", settings.maxSteps);
-            //sheet.properties.SetFloat("_MaxDistance", settings.maxDistance);
-
-            //command.BlitFullscreenTriangle(source, destination, sheet, 0);
+            SetRenderProperies();
+            command.Blit(source, destination, volumetricMaterial, 0);
 
             //// Test
 #if _DEBUG
-            SetPropertyDebug();
-            RenderDebug(source, destination, volumetricMaterial);
+            //SetPropertyDebug();
+            //RenderDebug(source, destination, volumetricMaterial);
 #endif
 
             command.EndSample("Volumetric Renderer");
@@ -140,13 +125,13 @@ namespace Volumetric
         private CommandBuffer beforeGBufferCommand;
 
         private int clearKernel;
-        private Vector3[] frustumCorners = new Vector3[4];
-        private Vector4[] screenTriangleCorners = new Vector4[3];
         private Matrix4x4 froxelProjMat;
         private Matrix4x4 viewMat;
         private Matrix4x4 clipToWorldMat;
+        private Matrix4x4 worldToClipMat;
 
         private readonly int clipToWorldMatId = Shader.PropertyToID("_ClipToWorldMat");
+        private readonly int worldToClipMatId = Shader.PropertyToID("_WorldToClipMat");
 
         private void ClearAllVolumes()
         {
@@ -206,6 +191,7 @@ namespace Volumetric
             Transform tr = mainCamera.transform;
             Matrix4x4 lookMatrix = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
             clipToWorldMat = lookMatrix * froxelProjMat.inverse;
+            worldToClipMat = clipToWorldMat.inverse;
 
             reprojMat = prevClipToWorldMat.inverse * clipToWorldMat;
             prevClipToWorldMat = clipToWorldMat;
@@ -547,6 +533,36 @@ namespace Volumetric
             compute.SetTextureFromGlobal(accumulationKernel, cameraDepthTexId, cameraDepthTexId);
 
             command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
+        }
+    }
+
+    // Final
+    public partial class VolumetricRenderer
+    {
+        private Vector3[] frustumCorners = new Vector3[4];
+        private Vector4[] screenTriangleCorners = new Vector4[3];
+
+        private readonly int scatterVolumeSrvId = Shader.PropertyToID("_ScatterVolumeSrv");
+        private readonly int screenQuadCornersId = Shader.PropertyToID("_ScreenQuadCorners");
+        private readonly int maxStepsId = Shader.PropertyToID("_MaxSteps");
+
+        private void SetRenderProperies()
+        {
+            mainCamera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), mainCamera.farClipPlane, mainCamera.stereoActiveEye, frustumCorners);
+
+            screenTriangleCorners[0] = new Vector4(frustumCorners[1].x, frustumCorners[1].y, mainCamera.farClipPlane, 0);
+            screenTriangleCorners[1] = new Vector4(frustumCorners[0].x, -3.0f * frustumCorners[1].y, mainCamera.farClipPlane, 0);
+            screenTriangleCorners[2] = new Vector4(3.0f * frustumCorners[2].x, frustumCorners[1].y, mainCamera.farClipPlane, 0);
+
+            screenTriangleCorners[0] = mainCamera.transform.TransformVector(screenTriangleCorners[0]) / mainCamera.farClipPlane;
+            screenTriangleCorners[1] = mainCamera.transform.TransformVector(screenTriangleCorners[1]) / mainCamera.farClipPlane;
+            screenTriangleCorners[2] = mainCamera.transform.TransformVector(screenTriangleCorners[2]) / mainCamera.farClipPlane;
+
+            volumetricMaterial.SetVectorArray(screenQuadCornersId, screenTriangleCorners);
+            volumetricMaterial.SetMatrix(worldToClipMatId, worldToClipMat);
+            volumetricMaterial.SetInt(maxStepsId, maxSteps);
+            volumetricMaterial.SetFloat(volumeDistanceId, volumeDistance);
+            volumetricMaterial.SetTexture(scatterVolumeSrvId, scatterVolume);
         }
     }
 

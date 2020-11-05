@@ -638,7 +638,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxSteps: 50
-  maxDistance: 10
   volumeDistance: 100
   shader: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
   compute: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
@@ -646,7 +645,7 @@ MonoBehaviour:
   temporalBlendAlpha: 0.05
   temporalCount: 4
   shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
-  slice: 63
+  slice: 52
 --- !u!1 &847011254
 GameObject:
   m_ObjectHideFlags: 0

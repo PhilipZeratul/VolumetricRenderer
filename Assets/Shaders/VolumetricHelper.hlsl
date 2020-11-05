@@ -32,6 +32,7 @@ int _VolumeWidth, _VolumeHeight, _VolumeDepth;
 float _NearPlane, _VolumeDistance;
 
 float4x4 _ClipToWorldMat;
+float4x4 _WorldToClipMat;
 float4x4 _ReprojMat;
 
 float _TemporalBlendAlpha;
@@ -74,6 +75,39 @@ float4 FroxelPos2WorldPos(uint3 froxelPos)
 float2 FroxelPos2Uv(uint2 froxelPos)
 {
     return float2((float)froxelPos.x / _VolumeWidth, (float)froxelPos.y / _VolumeHeight);
+}
+
+float3 ClipPos2FroxelPos(float4 clipPos)
+{
+    float3 froxelPos = 0;
+    froxelPos.x = Remap(clipPos.x, -1.0, 1.0, 0.0, _VolumeWidth - 1);
+    froxelPos.y = Remap(clipPos.y, -1.0, 1.0, 0.0, _VolumeHeight - 1);
+    froxelPos.z = Remap(clipPos.z, 0.0, 1.0, 0.0, _VolumeDepth - 1);
+    return froxelPos;
+}
+
+float3 WorldPos2FroxelPos(float3 worldPos)
+{
+    float4 clipPos = mul(_WorldToClipMat, float4(worldPos, 1));
+    clipPos /= clipPos.z;
+    float3 froxelPos = ClipPos2FroxelPos(clipPos);
+    return froxelPos;
+}
+
+float3 ClipPos2FroxelUvw(float4 clipPos)
+{
+    float3 froxelPos = clipPos.xyz;
+    froxelPos.x = (froxelPos.x + 1.0) / 2.0;
+    froxelPos.y = (froxelPos.y + 1.0) / 2.0;
+    return froxelPos;
+}
+
+float3 WorldPos2FroxelUvw(float3 worldPos)
+{
+    float4 clipPos = mul(_WorldToClipMat, float4(worldPos, 1));
+    clipPos /= clipPos.w;
+    float3 froxelUvw = ClipPos2FroxelUvw(clipPos);
+    return froxelUvw;
 }
 
 float Depth2FroxelPosZ(float depth)
