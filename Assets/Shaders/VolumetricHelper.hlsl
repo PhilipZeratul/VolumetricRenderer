@@ -40,6 +40,7 @@ float _TemporalOffset;
 float _TemporalBlendAlpha;
 
 // Helper Functions
+// TODO:  Cornette-Shanks anisotropic phase function
 float PhaseFunction(float g, float cosTheta)
 {
     float gSquared = g * g;

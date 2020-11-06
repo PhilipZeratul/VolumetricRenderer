@@ -87,7 +87,7 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
         alpha += (1 - transmittance) * (1 - alpha);
     }
 
-    _AccumulationTex[pos] = float4(accumuLight, alpha);
+    _AccumulationTex[pos] = float4(accumuLight, totalTransmittance);
 }
 
 [numthreads(8, 8, 16)]
