@@ -609,9 +609,9 @@ namespace Volumetric
         Vector3 FroxelPos2WorldPos(Vector3 froxelPos)
         {
             Vector4 viewPos = Vector4.one;
-            viewPos.z = (Mathf.Pow(froxelToWorldParams.z, froxelPos.z / volumeDepth) - 1) * froxelToWorldParams.w + nearPlane;
-            viewPos.x = (2.0f * froxelPos.x / volumeWidth - 1) * viewPos.z / froxelToWorldParams.x;
-            viewPos.y = (2.0f * froxelPos.y / volumeHeight - 1) * viewPos.z / froxelToWorldParams.y;
+            viewPos.z = (Mathf.Pow(froxelToWorldParams.z, froxelPos.z / (volumeDepth - 1)) - 1) * froxelToWorldParams.w + nearPlane;
+            viewPos.x = (2.0f * froxelPos.x / (volumeWidth - 1) - 1) * viewPos.z / froxelToWorldParams.x;
+            viewPos.y = (2.0f * froxelPos.y / (volumeHeight -1) - 1) * viewPos.z / froxelToWorldParams.y;
             Vector4 worldPos = viewToWorldMat * viewPos;
             worldPos /= worldPos.w;
             return new Vector3(worldPos.x, worldPos.y, worldPos.z);
