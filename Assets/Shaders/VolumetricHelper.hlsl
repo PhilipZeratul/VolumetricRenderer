@@ -28,11 +28,15 @@ float _PhaseG;
 float3 _LightColor;
 float3 _LightDir;
 
-int _VolumeWidth, _VolumeHeight, _VolumeDepth;
+int _VolumeWidth, _VolumeHeight, _VolumeDepth; // Value - 1
 float _NearPlane, _VolumeDistance;
 
-float4x4 _ClipToWorldMat;
-float4x4 _WorldToClipMat;
+// https://www.desmos.com/calculator/pd3c4qqsng
+float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y, cot(Fov_y / 2), z: c * (f - n * f / d) + 1, w: d / c / f
+//float4x4 _ClipToWorldMat;
+//float4x4 _WorldToClipMat;
+float4x4 _ViewToWorldMat;
+float4x4 _WorldToViewMat;
 float _TemporalOffset;
 
 float _TemporalBlendAlpha;
@@ -45,6 +49,11 @@ float PhaseFunction(float g, float cosTheta)
     return hg;
 }
 
+float LogWithBase(float base, float x)
+{
+    return log(x) / log(base);
+}
+
 float Remap(float value, float inputFrom, float inputTo, float outputFrom, float outputTo)
 {
     return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
@@ -52,24 +61,46 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
 
 // TODO: Use exponential depth mapping to increase near camera precision.
 // (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1) scaled with z.
-float4 FroxelPos2ClipPos(float3 froxelPos)
+//float4 FroxelPos2ClipPos(float3 froxelPos)
+//{
+//    float4 clipPos = 0;
+//    clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
+//    clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
+//    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
+//    clipPos.w = 1;
+//    return clipPos;
+//}
+//
+//float4 FroxelPos2WorldPos(float3 froxelPos)
+//{
+//    float4 clipPos = FroxelPos2ClipPos(froxelPos);
+//    float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
+//    clipPos *= z;
+//    float4 worldPos = mul(_ClipToWorldMat, clipPos);
+//    worldPos /= worldPos.w;
+//    return worldPos;
+//}
+
+float3 FroxelPos2WorldPos(float3 froxelPos)
 {
-    float4 clipPos = 0;
-    clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
-    clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);
-    clipPos.z = Remap(froxelPos.z, 0.0, _VolumeDepth - 1, 0.0, 1.0);
-    clipPos.w = 1;
-    return clipPos;
+    float4 viewPos = 1;
+    viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
+    viewPos.x = (2.0 * froxelPos.x / _VolumeWidth - 1) * viewPos.z / _FroxelToWorldParams.x;
+    viewPos.y = (2.0 * froxelPos.y / _VolumeHeight - 1) * viewPos.z / _FroxelToWorldParams.y;
+    float4 worldPos = mul(_ViewToWorldMat, viewPos);
+    worldPos /= worldPos.w;
+    return worldPos.xyz;
 }
 
-float4 FroxelPos2WorldPos(float3 froxelPos)
+float3 WorldPos2FroxelPos(float3 worldPos)
 {
-    float4 clipPos = FroxelPos2ClipPos(froxelPos);
-    float z = Remap(clipPos.z, 0.0, 1.0, _NearPlane, _VolumeDistance);
-    clipPos *= z;
-    float4 worldPos = mul(_ClipToWorldMat, clipPos);
-    worldPos /= worldPos.w;
-    return worldPos;
+    float4 viewPos = mul(_WorldToViewMat, float4(worldPos, 1));
+    viewPos /= viewPos.w;
+    float3 froxelPos = 0;
+    froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.x - _NearPlane) / _FroxelToWorldParams.w + 1);
+    froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
+    froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
+    return froxelPos;
 }
 
 float2 FroxelPos2Uv(float2 froxelPos)
@@ -77,37 +108,44 @@ float2 FroxelPos2Uv(float2 froxelPos)
     return float2(froxelPos.x / _VolumeWidth, froxelPos.y / _VolumeHeight);
 }
 
-float3 ClipPos2FroxelPos(float4 clipPos)
-{
-    float3 froxelPos = 0;
-    froxelPos.x = Remap(clipPos.x, -1.0, 1.0, 0.0, _VolumeWidth - 1);
-    froxelPos.y = Remap(clipPos.y, -1.0, 1.0, 0.0, _VolumeHeight - 1);
-    froxelPos.z = Remap(clipPos.z, 0.0, 1.0, 0.0, _VolumeDepth - 1);
-    return froxelPos;
-}
+//float3 ClipPos2FroxelPos(float4 clipPos)
+//{
+//    float3 froxelPos = 0;
+//    froxelPos.x = Remap(clipPos.x, -1.0, 1.0, 0.0, _VolumeWidth - 1);
+//    froxelPos.y = Remap(clipPos.y, -1.0, 1.0, 0.0, _VolumeHeight - 1);
+//    froxelPos.z = Remap(clipPos.z, 0.0, 1.0, 0.0, _VolumeDepth - 1);
+//    return froxelPos;
+//}
+//
+//float3 WorldPos2FroxelPos(float3 worldPos)
+//{
+//    float4 clipPos = mul(_WorldToClipMat, float4(worldPos, 1));
+//    clipPos /= clipPos.z;
+//    float3 froxelPos = ClipPos2FroxelPos(clipPos);
+//    return froxelPos;
+//}
 
-float3 WorldPos2FroxelPos(float3 worldPos)
-{
-    float4 clipPos = mul(_WorldToClipMat, float4(worldPos, 1));
-    clipPos /= clipPos.z;
-    float3 froxelPos = ClipPos2FroxelPos(clipPos);
-    return froxelPos;
-}
-
-float3 ClipPos2FroxelUvw(float4 clipPos)
-{
-    float3 froxelPos = clipPos.xyz;
-    froxelPos.x = (froxelPos.x + 1.0) / 2.0;
-    froxelPos.y = (froxelPos.y + 1.0) / 2.0;
-    froxelPos.z += _TemporalOffset;
-    return froxelPos;
-}
+//float3 ClipPos2FroxelUvw(float4 clipPos)
+//{
+//    float3 froxelPos = clipPos.xyz;
+//    froxelPos.x = (froxelPos.x + 1.0) / 2.0;
+//    froxelPos.y = (froxelPos.y + 1.0) / 2.0;
+//    froxelPos.z += _TemporalOffset;
+//    return froxelPos;
+//}
+//
+//float3 WorldPos2FroxelUvw(float3 worldPos)
+//{
+//    float4 clipPos = mul(_WorldToClipMat, float4(worldPos, 1));
+//    clipPos /= clipPos.w;
+//    float3 froxelUvw = ClipPos2FroxelUvw(clipPos);
+//    return froxelUvw;
+//}
 
 float3 WorldPos2FroxelUvw(float3 worldPos)
 {
-    float4 clipPos = mul(_WorldToClipMat, float4(worldPos, 1));
-    clipPos /= clipPos.w;
-    float3 froxelUvw = ClipPos2FroxelUvw(clipPos);
+    float3 froxelPos = WorldPos2FroxelPos(worldPos);
+    float3 froxelUvw = froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
     return froxelUvw;
 }
 

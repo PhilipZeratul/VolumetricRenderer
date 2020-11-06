@@ -315,13 +315,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170076733}
-  m_LocalRotation: {x: 0.025890848, y: 0.99478906, z: -0.08822288, w: -0.044058677}
+  m_LocalRotation: {x: 0.03157449, y: 0.9955482, z: -0.08635206, w: 0.020740671}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1872705087}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: -350.023, y: -174.62701, z: 3.4510002}
+  m_LocalEulerAnglesHint: {x: -350.023, y: -182.086, z: 3.4510002}
 --- !u!114 &170076736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,7 +422,7 @@ Transform:
   m_GameObject: {fileID: 240178905}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 567.7836}
-  m_LocalScale: {x: 1337.28, y: 1337.28, z: 1337.28}
+  m_LocalScale: {x: 10, y: 10, z: 10}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -592,7 +592,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 100
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -641,11 +641,10 @@ MonoBehaviour:
   volumeDistance: 100
   shader: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
   compute: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
-  temporalJitterScale: 0.00001
+  depthDistribution: 0.5
   temporalBlendAlpha: 0.05
   temporalCount: 4
   shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
-  slice: 52
 --- !u!1 &847011254
 GameObject:
   m_ObjectHideFlags: 0

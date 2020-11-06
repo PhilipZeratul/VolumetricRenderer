@@ -1,4 +1,4 @@
-﻿#define _DEBUG
+﻿//#define _DEBUG
 
 using System;
 using System.Collections.Generic;
@@ -124,16 +124,23 @@ namespace Volumetric
     // Misc
     public partial class VolumetricRenderer
     {
+        [Range(0.0f, 1.0f)]
+        public float depthDistribution = 0.5f;
         private CommandBuffer beforeGBufferCommand;
 
         private int clearKernel;
         private Matrix4x4 froxelProjMat;
-        private Matrix4x4 lookMatrix;
-        private Matrix4x4 clipToWorldMat;
-        private Matrix4x4 worldToClipMat;
+        private Matrix4x4 worldToViewMat;
+        //private Matrix4x4 clipToWorldMat;
+        //private Matrix4x4 worldToClipMat;
+        private Matrix4x4 viewToWorldMat;
+        private Vector4 froxelToWorldParams = new Vector4();
 
-        private readonly int clipToWorldMatId = Shader.PropertyToID("_ClipToWorldMat");
-        private readonly int worldToClipMatId = Shader.PropertyToID("_WorldToClipMat");
+        //private readonly int clipToWorldMatId = Shader.PropertyToID("_ClipToWorldMat");
+        //private readonly int worldToClipMatId = Shader.PropertyToID("_WorldToClipMat");
+        private readonly int viewToWorldMatId = Shader.PropertyToID("_ViewToWorldMat");
+        private readonly int worldToViewMatId = Shader.PropertyToID("_WorldToViewMat");
+        private readonly int froxelToWorldParamsId = Shader.PropertyToID("_FroxelToWorldParams");
 
         private void ClearAllVolumes()
         {
@@ -189,19 +196,28 @@ namespace Volumetric
                 new Vector4(0, 0, d, 0));
 
             Transform tr = mainCamera.transform;
-            lookMatrix = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
-            clipToWorldMat = lookMatrix * froxelProjMat.inverse;
-            worldToClipMat = clipToWorldMat.inverse;
+            worldToViewMat = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
+            //clipToWorldMat = lookMatrix * froxelProjMat.inverse;
+            //worldToClipMat = clipToWorldMat.inverse;
+
+            viewToWorldMat = worldToViewMat.inverse;
+
+            froxelToWorldParams.y = 1.0f / Mathf.Tan(Mathf.Deg2Rad * mainCamera.fieldOfView / 2.0f);
+            froxelToWorldParams.x = froxelToWorldParams.y / mainCamera.aspect;
+            froxelToWorldParams.z = depthDistribution * (volumeDepth - nearClipPlane * volumeDepth / volumeDistance) + 1;
+            froxelToWorldParams.w = volumeDistance / depthDistribution / volumeDepth;
         }
 
         private void SetPropertyGeneral()
         {
-            compute.SetInt(volumeWidthId, volumeWidth);
-            compute.SetInt(volumeHeightId, volumeHeight);
-            compute.SetInt(volumeDepthId, volumeDepth);
+            compute.SetInt(volumeWidthId, volumeWidth - 1);
+            compute.SetInt(volumeHeightId, volumeHeight - 1);
+            compute.SetInt(volumeDepthId, volumeDepth - 1);
             compute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
             compute.SetFloat(volumeDistanceId, volumeDistance);
-            compute.SetMatrix(clipToWorldMatId, clipToWorldMat);
+            compute.SetMatrix(viewToWorldMatId, viewToWorldMat);
+            compute.SetMatrix(worldToViewMatId, worldToViewMat);
+            compute.SetVector(froxelToWorldParamsId, froxelToWorldParams);
         }
     }
 
@@ -328,10 +344,11 @@ namespace Volumetric
             writeShadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
             esmShadowMapKernel = shadowCompute.FindKernel("EsmShadowMap");
 
-            shadowCompute.SetMatrix(clipToWorldMatId, clipToWorldMat);
-            shadowCompute.SetInt(volumeWidthId, volumeWidth);
-            shadowCompute.SetInt(volumeHeightId, volumeHeight);
-            shadowCompute.SetInt(volumeDepthId, volumeDepth);
+            shadowCompute.SetVector(froxelToWorldParamsId, froxelToWorldParams);
+            shadowCompute.SetMatrix(viewToWorldMatId, viewToWorldMat);
+            shadowCompute.SetInt(volumeWidthId, volumeWidth - 1);
+            shadowCompute.SetInt(volumeHeightId, volumeHeight - 1);
+            shadowCompute.SetInt(volumeDepthId, volumeDepth - 1);
             shadowCompute.SetFloat(volumeDistanceId, volumeDistance);
             shadowCompute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
 
@@ -557,7 +574,8 @@ namespace Volumetric
             screenTriangleCorners[2] = mainCamera.transform.TransformVector(screenTriangleCorners[2]) / mainCamera.farClipPlane;
 
             volumetricMaterial.SetVectorArray(screenQuadCornersId, screenTriangleCorners);
-            volumetricMaterial.SetMatrix(worldToClipMatId, worldToClipMat);
+            volumetricMaterial.SetVector(froxelToWorldParamsId, froxelToWorldParams);
+            volumetricMaterial.SetMatrix(worldToViewMatId, worldToViewMat);
             volumetricMaterial.SetInt(maxStepsId, maxSteps);
             volumetricMaterial.SetFloat(volumeDistanceId, volumeDistance);
             volumetricMaterial.SetTexture(scatterVolumeSrvId, scatterVolume);
