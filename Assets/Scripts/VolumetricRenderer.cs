@@ -33,10 +33,10 @@ namespace Volumetric
 
         private const int volumeWidth = 160;
         private const int volumeHeight = 88;
-        private const int volumeDepth = 64;
+        private const int volumeDepth = 256;
         private const int dispatchWidth = volumeWidth / 8;
-        private const int dispatchHeight = volumeHeight / 8;
-        private const int dispatchDepth = volumeDepth / 8;
+        private const int dispatchHeight = volumeHeight / 2;
+        private const int dispatchDepth = volumeDepth / 64;
 
         private readonly int volumeWidthId = Shader.PropertyToID("_VolumeWidth");
         private readonly int volumeHeightId = Shader.PropertyToID("_VolumeHeight");
@@ -98,7 +98,7 @@ namespace Volumetric
             command.Clear();
             command.BeginSample("Volumetric Renderer");
 
-            //TemporalBlendShadowVolume();
+            TemporalBlendShadowVolume();
 
             WriteMaterialVolume();
             //TemporalBlendMaterialVolume();
@@ -250,7 +250,6 @@ namespace Volumetric
 
             compute.SetFloat(temporalOffsetId, temporalOffset);
             shadowCompute.SetFloat(temporalOffsetId, temporalOffset);
-            //command.SetComputeFloatParam(compute, temporalOffsetId, temporalOffset);
         }
 
         private void TemporalBlendShadowVolume()

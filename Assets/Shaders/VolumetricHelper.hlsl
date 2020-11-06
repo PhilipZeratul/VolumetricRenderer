@@ -54,7 +54,6 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
 // (0, 0, 0) - (width, height, depth) -> (-1, -1, 0, 1) - (1, 1, 1, 1) scaled with z.
 float4 FroxelPos2ClipPos(float3 froxelPos)
 {
-    froxelPos.z -= _TemporalOffset;
     float4 clipPos = 0;
     clipPos.x = Remap(froxelPos.x, 0.0, _VolumeWidth - 1, -1.0, 1.0);
     clipPos.y = Remap(froxelPos.y, 0.0, _VolumeHeight - 1, -1.0, 1.0);

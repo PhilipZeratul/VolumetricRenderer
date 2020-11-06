@@ -19,10 +19,13 @@ void EsmShadowMap(uint3 pos : SV_DispatchThreadID)
     _EsmShadowMapUav[pos.xy] = dot(accum, 1 / 16.0f);
 }
 
-[numthreads(8, 8, 8)]
+[numthreads(8, 2, 64)]
 void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    float4 worldPos = FroxelPos2WorldPos(pos);
+    float3 froxelPos = pos;
+    froxelPos.z -= _TemporalOffset;
+
+    float4 worldPos = FroxelPos2WorldPos(froxelPos);
     float visibility = SampleEsmShadow(worldPos);
     _ShadowVolume[pos] = visibility;
 }
