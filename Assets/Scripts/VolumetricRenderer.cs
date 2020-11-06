@@ -1,4 +1,4 @@
-﻿//#define _DEBUG
+﻿#define _DEBUG
 
 using System;
 using System.Collections.Generic;
@@ -33,10 +33,10 @@ namespace Volumetric
 
         private const int volumeWidth = 160;
         private const int volumeHeight = 88;
-        private const int volumeDepth = 256;
+        private const int volumeDepth = 64;
         private const int dispatchWidth = volumeWidth / 8;
-        private const int dispatchHeight = volumeHeight / 2;
-        private const int dispatchDepth = volumeDepth / 64;
+        private const int dispatchHeight = volumeHeight / 8;
+        private const int dispatchDepth = volumeDepth / 16;
 
         private readonly int volumeWidthId = Shader.PropertyToID("_VolumeWidth");
         private readonly int volumeHeightId = Shader.PropertyToID("_VolumeHeight");
@@ -108,13 +108,13 @@ namespace Volumetric
 
             Accumulate();
 
-            SetRenderProperies();
-            command.Blit(source, destination, volumetricMaterial, 0);
+            //SetRenderProperies();
+            //command.Blit(source, destination, volumetricMaterial, 0);
 
             //// Test
 #if _DEBUG
-            //SetPropertyDebug();
-            //RenderDebug(source, destination, volumetricMaterial);
+            SetPropertyDebug();
+            RenderDebug(source, destination, volumetricMaterial);
 #endif
 
             command.EndSample("Volumetric Renderer");
@@ -129,15 +129,11 @@ namespace Volumetric
         private CommandBuffer beforeGBufferCommand;
 
         private int clearKernel;
-        private Matrix4x4 froxelProjMat;
         private Matrix4x4 worldToViewMat;
-        //private Matrix4x4 clipToWorldMat;
-        //private Matrix4x4 worldToClipMat;
         private Matrix4x4 viewToWorldMat;
         private Vector4 froxelToWorldParams = new Vector4();
+        private float nearPlane;
 
-        //private readonly int clipToWorldMatId = Shader.PropertyToID("_ClipToWorldMat");
-        //private readonly int worldToClipMatId = Shader.PropertyToID("_WorldToClipMat");
         private readonly int viewToWorldMatId = Shader.PropertyToID("_ViewToWorldMat");
         private readonly int worldToViewMatId = Shader.PropertyToID("_WorldToViewMat");
         private readonly int froxelToWorldParamsId = Shader.PropertyToID("_FroxelToWorldParams");
@@ -182,29 +178,14 @@ namespace Volumetric
 
         private void CalculateMatrices()
         {
-            float froxelDistance = volumeDistance;
-            float nearClipPlane = mainCamera.nearClipPlane;
-            float b = 1.0f / Mathf.Tan(Mathf.Deg2Rad * mainCamera.fieldOfView / 2.0f);
-            float a = b / mainCamera.aspect;
-            float c = froxelDistance / (froxelDistance - nearClipPlane);
-            float d = -froxelDistance * nearClipPlane / (froxelDistance - nearClipPlane);
-
-            froxelProjMat = new Matrix4x4(
-                new Vector4(a, 0, 0, 0),
-                new Vector4(0, b, 0, 0),
-                new Vector4(0, 0, c, 1),
-                new Vector4(0, 0, d, 0));
-
+            nearPlane = mainCamera.nearClipPlane;
             Transform tr = mainCamera.transform;
-            worldToViewMat = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
-            //clipToWorldMat = lookMatrix * froxelProjMat.inverse;
-            //worldToClipMat = clipToWorldMat.inverse;
-
-            viewToWorldMat = worldToViewMat.inverse;
+            viewToWorldMat = Matrix4x4.LookAt(tr.position, tr.position + tr.forward, tr.up);
+            worldToViewMat = viewToWorldMat.inverse;
 
             froxelToWorldParams.y = 1.0f / Mathf.Tan(Mathf.Deg2Rad * mainCamera.fieldOfView / 2.0f);
             froxelToWorldParams.x = froxelToWorldParams.y / mainCamera.aspect;
-            froxelToWorldParams.z = depthDistribution * (volumeDepth - nearClipPlane * volumeDepth / volumeDistance) + 1;
+            froxelToWorldParams.z = depthDistribution * (volumeDepth - nearPlane * volumeDepth / volumeDistance) + 1;
             froxelToWorldParams.w = volumeDistance / depthDistribution / volumeDepth;
         }
 
@@ -213,7 +194,7 @@ namespace Volumetric
             compute.SetInt(volumeWidthId, volumeWidth - 1);
             compute.SetInt(volumeHeightId, volumeHeight - 1);
             compute.SetInt(volumeDepthId, volumeDepth - 1);
-            compute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
+            compute.SetFloat(nearPlaneId, nearPlane);
             compute.SetFloat(volumeDistanceId, volumeDistance);
             compute.SetMatrix(viewToWorldMatId, viewToWorldMat);
             compute.SetMatrix(worldToViewMatId, worldToViewMat);
@@ -350,7 +331,7 @@ namespace Volumetric
             shadowCompute.SetInt(volumeHeightId, volumeHeight - 1);
             shadowCompute.SetInt(volumeDepthId, volumeDepth - 1);
             shadowCompute.SetFloat(volumeDistanceId, volumeDistance);
-            shadowCompute.SetFloat(nearPlaneId, mainCamera.nearClipPlane);
+            shadowCompute.SetFloat(nearPlaneId, nearPlane);
 
             WriteShadowVolumeEvent?.Invoke();
         }
@@ -625,32 +606,15 @@ namespace Volumetric
                 Gizmos.color = oldColor;
             }
         }
-
-        float Remap(float value, float inputFrom, float inputTo, float outputFrom, float outputTo)
+        Vector3 FroxelPos2WorldPos(Vector3 froxelPos)
         {
-            return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
-        }
-
-        Vector4 FroxelPos2ClipPos(Vector3 froxelPos)
-        {
-            Vector4 clipPos = new Vector4
-            {
-                x = Remap((float)froxelPos.x, 0.0f, volumeWidth - 1, -1.0f, 1.0f),
-                y = Remap((float)froxelPos.y, 0.0f, volumeHeight - 1, -1.0f, 1.0f),
-                z = Remap((float)froxelPos.z, 0.0f, volumeDepth - 1, 0.0f, 1.0f),
-                w = 1
-            };
-            return clipPos;
-        }
-
-        Vector4 FroxelPos2WorldPos(Vector3 froxelPos)
-        {
-            Vector4 clipPos = FroxelPos2ClipPos(froxelPos);
-            float z = Remap(clipPos.z, 0.0f, 1.0f, mainCamera.nearClipPlane, volumeDistance);
-            clipPos *= z;
-            Vector4 worldPos = clipToWorldMat * clipPos;
+            Vector4 viewPos = Vector4.one;
+            viewPos.z = (Mathf.Pow(froxelToWorldParams.z, froxelPos.z / volumeDepth) - 1) * froxelToWorldParams.w + nearPlane;
+            viewPos.x = (2.0f * froxelPos.x / volumeWidth - 1) * viewPos.z / froxelToWorldParams.x;
+            viewPos.y = (2.0f * froxelPos.y / volumeHeight - 1) * viewPos.z / froxelToWorldParams.y;
+            Vector4 worldPos = viewToWorldMat * viewPos;
             worldPos /= worldPos.w;
-            return worldPos;
+            return new Vector3(worldPos.x, worldPos.y, worldPos.z);
         }
     }
 #endif

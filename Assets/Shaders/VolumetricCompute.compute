@@ -11,7 +11,7 @@
 #include "VolumetricHelper.hlsl"
 
 // Kernels
-[numthreads(8, 2, 64)]
+[numthreads(8, 8, 16)]
 void InitAllVolumes(uint3 pos : SV_DispatchThreadID)
 {
     _PrevShadowVolume[pos] = _ShadowVolume[pos];
@@ -25,14 +25,14 @@ void InitAllVolumes(uint3 pos : SV_DispatchThreadID)
     _ScatterVolume[pos] = 0;
 }
 
-[numthreads(8, 2, 64)]
+[numthreads(8, 8, 16)]
 void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
 {
     _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
     _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
 }
 
-[numthreads(8, 2, 64)]
+[numthreads(8, 8, 16)]
 void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
     float visibility = _ShadowVolume[pos];
@@ -54,7 +54,7 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
     _ScatterVolume[pos] += float4(inScatter, extinction);
 }
 
-[numthreads(8, 2, 1)]
+[numthreads(8, 8, 1)]
 void Accumulation(uint2 pos : SV_DispatchThreadID)
 {
     float3 accumuLight = 0.0;
@@ -90,14 +90,14 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
     _AccumulationTex[pos] = float4(accumuLight, alpha);
 }
 
-[numthreads(8, 2, 64)]
+[numthreads(8, 8, 16)]
 void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
 {
     _ShadowVolume[pos] = _ShadowVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevShadowVolume[pos] * _TemporalBlendAlpha;
     //_ShadowVolume[pos] = _PrevShadowVolume[pos];
 }
 
-[numthreads(8, 2, 64)]
+[numthreads(8, 8, 16)]
 void TemporalBlendMaterialVolume(uint3 pos : SV_DispatchThreadID)
 {
     //uint3 reprojPos = mul(_ReprojMat, pos);
@@ -106,7 +106,7 @@ void TemporalBlendMaterialVolume(uint3 pos : SV_DispatchThreadID)
     _MaterialVolume_B[pos] = _MaterialVolume_B[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_B[pos] * _TemporalBlendAlpha;
 }
 
-[numthreads(8, 2, 64)]
+[numthreads(8, 8, 16)]
 void TemporalBlendScatterVolume(uint3 pos : SV_DispatchThreadID)
 {
     //uint3 reprojPos = mul(_ReprojMat, pos);
