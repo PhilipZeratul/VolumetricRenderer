@@ -75,7 +75,7 @@ float3 WorldPos2FroxelPos(float3 worldPos)
     float4 viewPos = mul(_WorldToViewMat, float4(worldPos, 1));
     viewPos /= viewPos.w;
     float3 froxelPos = 0;
-    froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.x - _NearPlane) / _FroxelToWorldParams.w + 1);
+    froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
     froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
     froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
     return froxelPos;
@@ -95,8 +95,8 @@ float3 WorldPos2FroxelUvw(float3 worldPos)
 
 float Depth2FroxelPosZ(float depth)
 {
-    float z = floor(Remap(depth, 0.0, 1.0, 0.0, _VolumeDepth - 1));
-    return z;
+    float froxelPosZ = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (depth - _NearPlane) / _FroxelToWorldParams.w + 1);
+    return froxelPosZ;
 }
 
 float Rgb2Gray(float3 c)
