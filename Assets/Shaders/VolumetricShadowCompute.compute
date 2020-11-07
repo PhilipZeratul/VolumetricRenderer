@@ -1,24 +1,10 @@
 ﻿#pragma enable_d3d11_debug_symbols
 
-#pragma kernel EsmShadowMap
 #pragma kernel WriteShadowVolumeDir
 
 #include "VolumetricHelper.hlsl"
 
 // Kernels
-[numthreads(8, 8, 1)]
-void EsmShadowMap(uint3 pos : SV_DispatchThreadID)
-{
-    float2 uv = pos.xy / 256.0;
-    float4 accum = 0.0f;
-    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(0, 0))) * EXPONENT);
-    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 0))) * EXPONENT);
-    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(0, 2))) * EXPONENT);
-    accum += exp((1 - _ShadowMapTexture.GatherRed(sampler_point_clamp, uv, int2(2, 2))) * EXPONENT);
-
-    _EsmShadowMapUav[pos.xy] = dot(accum, 1 / 16.0f);
-}
-
 [numthreads(8, 8, 16)]
 void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
@@ -26,6 +12,6 @@ void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
     froxelPos.z -= _TemporalOffset;
 
     float4 worldPos = float4(FroxelPos2WorldPos(froxelPos), 1);
-    float visibility = SampleEsmShadow(worldPos);
+    float visibility = SampleShadow(worldPos);
     _ShadowVolume[pos] = visibility;
 }

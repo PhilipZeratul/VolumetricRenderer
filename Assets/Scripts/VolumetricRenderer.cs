@@ -124,7 +124,7 @@ namespace Volumetric
     // Misc
     public partial class VolumetricRenderer
     {
-        [Range(0.0f, 1.0f)]
+        [Range(0.1f, 1.0f)]
         public float depthDistribution = 0.5f;
         private CommandBuffer beforeGBufferCommand;
 
@@ -291,39 +291,21 @@ namespace Volumetric
         private RenderTexture shadowVolume; // R: Visibility
         private RenderTargetIdentifier shadowVolumeTargetId;
         private RenderTargetIdentifier shadowMapTextureTargetId;
-        private RenderTexture esmShadowMapTex;
-        private RenderTargetIdentifier esmShadowMapTexTargetId;
 
         private readonly int shadowVolumeId = Shader.PropertyToID("_ShadowVolume");
         private readonly int shadowMapTextureId = Shader.PropertyToID("_ShadowMapTexture");
-        private readonly int esmShadowMapTexId = Shader.PropertyToID("_EsmShadowMapTex");
-        private readonly int esmShadowMapUavId = Shader.PropertyToID("_EsmShadowMapUav");
 
         private int writeShadowVolumeDirKernel;
-        private int esmShadowMapKernel;
-
-        private const int esmShadowMapRes = 256;
 
         private void InitShadowVolumetric()
         {
             CreateVolume(ref shadowVolume, ref shadowVolumeTargetId, "Shadow Volume", RenderTextureFormat.RHalf);
             shadowMapTextureTargetId = new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive);
-            esmShadowMapTex = new RenderTexture(esmShadowMapRes, esmShadowMapRes, 0, RenderTextureFormat.RHalf)
-            {
-                name = "ESM Shadowmap Texture",
-                filterMode = FilterMode.Bilinear,
-                dimension = TextureDimension.Tex2D,
-                enableRandomWrite = true,
-                wrapMode = TextureWrapMode.Clamp
-            };
-            esmShadowMapTex.Create();
-            esmShadowMapTexTargetId = new RenderTargetIdentifier(esmShadowMapTex);
         }
 
         private void WriteShadowVolume()
         {
             writeShadowVolumeDirKernel = shadowCompute.FindKernel("WriteShadowVolumeDir");
-            esmShadowMapKernel = shadowCompute.FindKernel("EsmShadowMap");
 
             shadowCompute.SetVector(froxelToWorldParamsId, froxelToWorldParams);
             shadowCompute.SetMatrix(viewToWorldMatId, viewToWorldMat);
@@ -339,14 +321,10 @@ namespace Volumetric
         public void DirLightShadow(CommandBuffer shadowCommand, CommandBuffer dirShadowCommand)
         {
             dirShadowCommand.Clear();
-            dirShadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, shadowMapTextureId, shadowMapTextureTargetId);
+            dirShadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowMapTextureId, shadowMapTextureTargetId);
 
             shadowCommand.Clear();
-            shadowCommand.SetComputeTextureParam(shadowCompute, esmShadowMapKernel, esmShadowMapUavId, esmShadowMapTexTargetId);
-            shadowCommand.DispatchCompute(shadowCompute, esmShadowMapKernel, esmShadowMapRes / 8, esmShadowMapRes / 8, 1);
-
             shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
-            shadowCommand.SetComputeTextureParam(shadowCompute, writeShadowVolumeDirKernel, esmShadowMapTexId, esmShadowMapTexTargetId);
             shadowCommand.DispatchCompute(shadowCompute, writeShadowVolumeDirKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
