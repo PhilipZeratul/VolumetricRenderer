@@ -32,7 +32,6 @@ void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
     float3 uvw = worldPos * _NoiseTiling + _NoiseScrollingSpeed * _Time.x;
     float noise = _NoiseTex.SampleLevel(sampler_bilinear_repeat, uvw, 0).r;
     _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef) * noise;
-    //_MaterialVolume_A[pos] = noise.xxxx;
     _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
 }
 
