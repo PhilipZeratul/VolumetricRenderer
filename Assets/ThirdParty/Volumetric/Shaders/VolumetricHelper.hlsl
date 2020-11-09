@@ -6,7 +6,9 @@
 #define PI 3.1415926535
 #define EXPONENT 8.0
 
-// Parameters
+//
+// ------------------------------------ Parameters ----------------------------------------------
+//
 SamplerState sampler_point_clamp;
 SamplerState sampler_bilinear_clamp;
 SamplerState sampler_bilinear_repeat;
@@ -36,7 +38,6 @@ float3 _LightDir;
 int _VolumeWidth, _VolumeHeight, _VolumeDepth; // Value - 1
 float _NearPlane, _VolumeDistance;
 
-// https://www.desmos.com/calculator/pd3c4qqsng
 float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y, cot(Fov_y / 2), z: c * (f - n * f / d) + 1, w: d / c / f
 float4x4 _ViewToWorldMat;
 float4x4 _WorldToViewMat;
@@ -44,14 +45,9 @@ float4x4 _WorldToViewMat;
 float _TemporalOffset;
 float _TemporalBlendAlpha;
 
-// Helper Functions
-// TODO:  Cornette-Shanks anisotropic phase function
-float PhaseFunction(float g, float cosTheta)
-{
-    float gSquared = g * g;
-    float hg = (1 - gSquared) / pow(1 + gSquared - 2.0 * g * cosTheta, 1.5) / 4.0 / PI;
-    return hg;
-}
+//
+// ------------------------------------ Miscellaneous ----------------------------------------------
+//
 
 float LogWithBase(float base, float x)
 {
@@ -63,6 +59,29 @@ float Remap(float value, float inputFrom, float inputTo, float outputFrom, float
     return (value - inputFrom) / (inputTo - inputFrom) * (outputTo - outputFrom) + outputFrom;
 }
 
+float Rgb2Gray(float3 c)
+{
+    float gray = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+    return gray;
+}
+
+//
+// ------------------------------------ Phase Function ----------------------------------------------
+//
+
+// TODO:  Cornette-Shanks anisotropic phase function
+float PhaseFunction(float g, float cosTheta)
+{
+    float gSquared = g * g;
+    float hg = (1 - gSquared) / pow(1 + gSquared - 2.0 * g * cosTheta, 1.5) / 4.0 / PI;
+    return hg;
+}
+
+//
+// ------------------------------------ Position Transformation ----------------------------------------------
+//
+
+// https://www.desmos.com/calculator/pd3c4qqsng
 float3 FroxelPos2WorldPos(float3 froxelPos)
 {
     float4 viewPos = 1;
@@ -103,11 +122,9 @@ float Depth2FroxelPosZ(float depth)
     return froxelPosZ;
 }
 
-float Rgb2Gray(float3 c)
-{
-    float gray = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
-    return gray;
-}
+//
+// ------------------------------------ Shadow ----------------------------------------------
+//
 
 /**
  * Gets the cascade weights based on the world position of the fragment and the poisitions of the split spheres for each cascade.
@@ -155,5 +172,7 @@ float SampleShadow(float4 wpos)
     float4 res = shadow;
     return res;
 }
+
+
 
 #endif //VOLUMETRIC_HELPER

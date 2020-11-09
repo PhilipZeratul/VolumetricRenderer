@@ -98,7 +98,7 @@ namespace Volumetric
             command.Clear();
             command.BeginSample("Volumetric Renderer");
 
-            TemporalBlendShadowVolume();
+            //TemporalBlendShadowVolume();
 
             WriteMaterialVolume();
             //TemporalBlendMaterialVolume();
