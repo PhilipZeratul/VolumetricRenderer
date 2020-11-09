@@ -238,6 +238,9 @@ MonoBehaviour:
   scatteringColor: {r: 1, g: 1, b: 1, a: 0}
   absorption: 0.511
   phaseG: 0.3
+  noiseTex: {fileID: 11700000, guid: 39e8b899419b3d549a1118502281e86d, type: 2}
+  scrollingSpeed: {x: 10, y: 0, z: 0}
+  tiling: {x: 0.001, y: 0.1, z: 0.1}
 --- !u!4 &121168365
 Transform:
   m_ObjectHideFlags: 0

@@ -37,6 +37,14 @@ namespace Volumetric
         // Ambient intensity
         // Water droplet density
 
+        [Space]
+        [SerializeField]
+        public Texture3D noiseTex;
+        [SerializeField]
+        public Vector3 scrollingSpeed = new Vector3();
+        [SerializeField]
+        public Vector3 tiling = new Vector3();
+
         public Color ScatteringCoef
         {
             get { return scatteringColor * scatterScale; }

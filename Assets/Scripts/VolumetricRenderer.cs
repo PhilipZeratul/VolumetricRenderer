@@ -342,6 +342,9 @@ namespace Volumetric
         private readonly int scatteringCoefId = Shader.PropertyToID("_ScatteringCoef");
         private readonly int absorptionCoefId = Shader.PropertyToID("_AbsorptionCoef");
         private readonly int phaseGId = Shader.PropertyToID("_PhaseG");
+        private readonly int noiseTexId = Shader.PropertyToID("_NoiseTex");
+        private readonly int noiseScrollingSpeedId = Shader.PropertyToID("_NoiseScrollingSpeed");
+        private readonly int noiseTilingId = Shader.PropertyToID("_NoiseTiling");
 
         private int constantVolumeKernel;
 
@@ -380,6 +383,10 @@ namespace Volumetric
                         command.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
                         command.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
                         command.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
+                        command.SetComputeTextureParam(compute, constantVolumeKernel, noiseTexId, materialVolumes[i].noiseTex);
+                        command.SetComputeVectorParam(compute, noiseScrollingSpeedId, materialVolumes[i].scrollingSpeed);
+                        command.SetComputeVectorParam(compute, noiseTilingId, materialVolumes[i].tiling);
+                        
                         command.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
 

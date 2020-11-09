@@ -9,6 +9,7 @@
 // Parameters
 SamplerState sampler_point_clamp;
 SamplerState sampler_bilinear_clamp;
+SamplerState sampler_bilinear_repeat;
 SamplerComparisonState sampler_ShadowMapTexture;
 
 RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
@@ -18,13 +19,16 @@ RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light,
 RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
 
 RWTexture2D<float> _EsmShadowMapUav;
-Texture2D _EsmShadowMapTex;
-Texture2D _ShadowMapTexture;
-Texture2D _CameraDepthTexture;
+Texture2D<float> _EsmShadowMapTex;
+Texture2D<float> _ShadowMapTexture;
+Texture2D<float> _CameraDepthTexture;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
 float _PhaseG;
+Texture3D<float> _NoiseTex;
+float3 _NoiseScrollingSpeed;
+float3 _NoiseTiling;
 
 float3 _LightColor;
 float3 _LightDir;
