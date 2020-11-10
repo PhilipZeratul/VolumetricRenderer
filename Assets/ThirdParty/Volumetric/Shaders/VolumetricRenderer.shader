@@ -75,18 +75,28 @@
 
                 float3 currentPos = _WorldSpaceCameraPos.xyz;
                 float stepDist = _VolumeDistance / _MaxSteps;
-                float accumDist = 0.0;
+                float accumuDist = 0.0;
 
                 float accumuLight = 0.0;
                 float totalTransmittance = 1.0;
                 float alpha = 0.0;
                 
-                for (int i = 0; i < _MaxSteps && accumDist < viewDepth; i++)
+                for (int i = 0; i < _MaxSteps && accumuDist < viewDepth; i++)
                 {
                     currentPos += stepDist * viewDirWS;
                     float3 froxelUvw = WorldPos2FroxelUvw(currentPos);
 
+                    float3 addUvw = float3(0, 0, (0.5 / _VolumeDepth));
+
                     float4 scatterVolume = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw, 0);
+                    float4 scatterVolume2 = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw + addUvw, 0);
+                    float4 scatterVolume3 = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw + 2 * addUvw, 0);
+                    float4 scatterVolume4 = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw + 3 * addUvw, 0);
+                    float4 scatterVolume5 = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw + 4 * addUvw, 0);
+                    float4 scatterVolume6 = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, froxelUvw + 5 * addUvw, 0);
+
+                    scatterVolume = (scatterVolume + scatterVolume2 + scatterVolume3 + scatterVolume4 + scatterVolume5 + scatterVolume6) / 7;
+
                     float3 inScatter = scatterVolume.rgb;
                     float extinction = scatterVolume.a;
 
@@ -95,13 +105,15 @@
                     accumuLight += inScatter * totalTransmittance * stepDist;
                     alpha += (1 - transmittance) * (1 - alpha);
 
-                    accumDist += stepDist;
+                    accumuDist += stepDist;
                 }
 
                 float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
-                float4 color = lerp(mainTex, accumuLight, alpha);
-
-                //color = accumuLight;
+                //float4 color = lerp(mainTex, accumuLight, alpha);
+                float4 color = 1;
+                //color.rgb = mainTex * totalTransmittance + accumuLight;
+                color.rgb = accumuLight;
+                //color.rgb = totalTransmittance.xxx;
 
                 return color;
             }
@@ -136,6 +148,7 @@
                 float4 color = UNITY_SAMPLE_TEX2D(_AccumulationTex, IN.uv);
                 //color = lerp(mainTex, color, color.a);
                 color.rgb = mainTex * color.a + color.rgb;
+                //color.rgb = color.aaa;
                 color.a = 1;
                 return color;
             }

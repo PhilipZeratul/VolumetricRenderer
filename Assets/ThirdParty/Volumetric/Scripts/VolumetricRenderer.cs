@@ -63,6 +63,7 @@ namespace Volumetric
             CreateMaterialVolumes();
             CreateScatterVolume();
             CreateAccumulationTex();
+            GetHexagonalClosePackedSpheres7(xyOffsetSequence);
         }
 
         private void OnDestroy()
@@ -87,7 +88,8 @@ namespace Volumetric
             CalculateMatrices();
             SetPropertyGeneral();
 
-            CalcTemporalOffset();
+            SetPropertyTemporal();
+            //CalcTemporalOffset();
 
             ClearAllVolumes();
             WriteShadowVolume();
@@ -108,13 +110,13 @@ namespace Volumetric
 
             Accumulate();
 
-            //SetRenderProperies();
-            //command.Blit(source, destination, volumetricMaterial, 0);
+            SetProperyFinal();
+            command.Blit(source, destination, volumetricMaterial, 0);
 
             //// Test
 #if _DEBUG
-            SetPropertyDebug();
-            RenderDebug(source, destination, volumetricMaterial);
+            //SetPropertyDebug();
+            //RenderDebug(source, destination, volumetricMaterial);
 #endif
 
             command.EndSample("Volumetric Renderer");
@@ -210,6 +212,7 @@ namespace Volumetric
         public int temporalCount = 16;
         private float temporalOffset; // 0f - 1f
         private int jitterIndex = 1;
+        private Vector2[] xyOffsetSequence = new Vector2[7];
 
         private RenderTexture prevShadowVolume;
         private RenderTargetIdentifier prevShadowVolumeTargetId;
@@ -226,6 +229,8 @@ namespace Volumetric
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
         private readonly int temporalOffsetId = Shader.PropertyToID("_TemporalOffset");
+        private readonly int froxelSampleOffsetId = Shader.PropertyToID("_FroxelSampleOffset");
+        
 
         private void CreatePrevVolumes()
         {
@@ -247,6 +252,12 @@ namespace Volumetric
 
             compute.SetFloat(temporalOffsetId, temporalOffset);
             shadowCompute.SetFloat(temporalOffsetId, temporalOffset);
+        }
+
+        private void SetPropertyTemporal()
+        {
+            compute.SetVector(froxelSampleOffsetId, xyOffsetSequence[Time.frameCount % 7]);
+            shadowCompute.SetVector(froxelSampleOffsetId, xyOffsetSequence[Time.frameCount % 7]);
         }
 
         private void TemporalBlendShadowVolume()
@@ -277,6 +288,41 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, temporalBlendScatterVolumeKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
 
             command.DispatchCompute(compute, temporalBlendScatterVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+        }
+
+        // Ref: https://en.wikipedia.org/wiki/Close-packing_of_equal_spheres
+        // The returned {x, y} coordinates (and all spheres) are all within the (-0.5, 0.5)^2 range.
+        // The pattern has been rotated by 15 degrees to maximize the resolution along X and Y:
+        // https://www.desmos.com/calculator/kcpfvltz7c
+        static void GetHexagonalClosePackedSpheres7(Vector2[] coords)
+        {
+            float r = 0.17054068870105443882f;
+            float d = 2 * r;
+            float s = r * Mathf.Sqrt(3);
+
+            // Try to keep the weighted average as close to the center (0.5) as possible.
+            //  (7)(5)    ( )( )    ( )( )    ( )( )    ( )( )    ( )(o)    ( )(x)    (o)(x)    (x)(x)
+            // (2)(1)(3) ( )(o)( ) (o)(x)( ) (x)(x)(o) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x)
+            //  (4)(6)    ( )( )    ( )( )    ( )( )    (o)( )    (x)( )    (x)(o)    (x)(x)    (x)(x)
+            coords[0] = new Vector2(0, 0);
+            coords[1] = new Vector2(-d, 0);
+            coords[2] = new Vector2(d, 0);
+            coords[3] = new Vector2(-r, -s);
+            coords[4] = new Vector2(r, s);
+            coords[5] = new Vector2(r, -s);
+            coords[6] = new Vector2(-r, s);
+
+            // Rotate the sampling pattern by 15 degrees.
+            const float cos15 = 0.96592582628906828675f;
+            const float sin15 = 0.25881904510252076235f;
+
+            for (int i = 0; i < 7; i++)
+            {
+                Vector2 coord = coords[i];
+
+                coords[i].x = coord.x * cos15 - coord.y * sin15;
+                coords[i].y = coord.x * sin15 + coord.y * cos15;
+            }
         }
     }
 
@@ -371,21 +417,24 @@ namespace Volumetric
 
         private void WriteMaterialVolume()
         {
-            constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
-            command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
-            command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
-
             for (int i = 0; i < materialVolumes.Count; i++)
             {
                 switch (materialVolumes[i].volumeType)
                 {
                     case VolumetricMaterialVolume.VolumeType.Constant:
+                        constantVolumeKernel = compute.FindKernel("WriteMaterialVolumeConstant");
+                        if (materialVolumes[i].noiseTex != null)
+                        {
+                            constantVolumeKernel++;
+                            command.SetComputeTextureParam(compute, constantVolumeKernel, noiseTexId, materialVolumes[i].noiseTex);
+                            command.SetComputeVectorParam(compute, noiseScrollingSpeedId, materialVolumes[i].scrollingSpeed);
+                            command.SetComputeVectorParam(compute, noiseTilingId, materialVolumes[i].tiling);
+                        }
+                        command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
+                        command.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
                         command.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
                         command.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
                         command.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
-                        command.SetComputeTextureParam(compute, constantVolumeKernel, noiseTexId, materialVolumes[i].noiseTex);
-                        command.SetComputeVectorParam(compute, noiseScrollingSpeedId, materialVolumes[i].scrollingSpeed);
-                        command.SetComputeVectorParam(compute, noiseTilingId, materialVolumes[i].tiling);
                         
                         command.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
@@ -527,7 +576,7 @@ namespace Volumetric
         private readonly int screenQuadCornersId = Shader.PropertyToID("_ScreenQuadCorners");
         private readonly int maxStepsId = Shader.PropertyToID("_MaxSteps");
 
-        private void SetRenderProperies()
+        private void SetProperyFinal()
         {
             mainCamera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), mainCamera.farClipPlane, mainCamera.stereoActiveEye, frustumCorners);
 
@@ -543,6 +592,9 @@ namespace Volumetric
             volumetricMaterial.SetVector(froxelToWorldParamsId, froxelToWorldParams);
             volumetricMaterial.SetMatrix(worldToViewMatId, worldToViewMat);
             volumetricMaterial.SetInt(maxStepsId, maxSteps);
+            volumetricMaterial.SetInt(volumeWidthId, volumeWidth);
+            volumetricMaterial.SetInt(volumeHeightId, volumeHeight);
+            volumetricMaterial.SetInt(volumeDepthId, volumeDepth);
             volumetricMaterial.SetFloat(volumeDistanceId, volumeDistance);
             volumetricMaterial.SetTexture(scatterVolumeSrvId, scatterVolume);
         }

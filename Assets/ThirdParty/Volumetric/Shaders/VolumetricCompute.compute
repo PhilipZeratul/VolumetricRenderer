@@ -2,6 +2,7 @@
 
 #pragma kernel InitAllVolumes
 #pragma kernel WriteMaterialVolumeConstant
+#pragma kernel WriteMaterialVolumeConstant _WITH_NOISE
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel Accumulation
 #pragma kernel TemporalBlendShadowVolume
@@ -28,11 +29,15 @@ void InitAllVolumes(uint3 pos : SV_DispatchThreadID)
 [numthreads(8, 8, 16)]
 void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
 {
-    float3 worldPos = FroxelPos2WorldPos(pos);
-    float3 uvw = worldPos * _NoiseTiling + _NoiseScrollingSpeed * _Time.x;
-    float noise = _NoiseTex.SampleLevel(sampler_bilinear_repeat, uvw, 0).r;
-    _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef) * noise;
+    _MaterialVolume_A[pos] = float4(_ScatteringCoef, _AbsorptionCoef);
     _MaterialVolume_B[pos] = float4(_PhaseG, 0, 0, 0);
+
+    #ifdef _WITH_NOISE
+        float3 worldPos = FroxelPos2WorldPos(pos);
+        float3 uvw = worldPos * _NoiseTiling + _NoiseScrollingSpeed * _Time.x;
+        float noise = _NoiseTex.SampleLevel(sampler_bilinear_repeat, uvw, 0).r;
+        _MaterialVolume_A[pos] *= noise;
+    #endif
 }
 
 [numthreads(8, 8, 16)]

@@ -23,6 +23,9 @@ RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittanc
 RWTexture2D<float> _EsmShadowMapUav;
 Texture2D<float> _EsmShadowMapTex;
 Texture2D<float> _ShadowMapTexture;
+float4 _ShadowMapTexture_TexelSize;
+
+
 Texture2D<float> _CameraDepthTexture;
 
 float3 _ScatteringCoef;
@@ -44,6 +47,7 @@ float4x4 _WorldToViewMat;
 
 float _TemporalOffset;
 float _TemporalBlendAlpha;
+float2 _FroxelSampleOffset;
 
 //
 // ------------------------------------ Miscellaneous ----------------------------------------------
@@ -81,14 +85,29 @@ float PhaseFunction(float g, float cosTheta)
 // ------------------------------------ Position Transformation ----------------------------------------------
 //
 
+float GetFroxelTileWidth(float viewZ)
+{
+    return 2.0 * viewZ / _FroxelToWorldParams.x / _VolumeWidth;
+}
+
+float GetFroxelTileHeight(float viewZ)
+{
+    return 2.0 * viewZ / _FroxelToWorldParams.y / _VolumeHeight;
+}
+
 // https://www.desmos.com/calculator/pd3c4qqsng
 float3 FroxelPos2WorldPos(float3 froxelPos)
 {
-    float4 viewPos = 1;
+    float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
     viewPos.x = (2.0 * froxelPos.x / _VolumeWidth - 1) * viewPos.z / _FroxelToWorldParams.x;
     viewPos.y = (2.0 * froxelPos.y / _VolumeHeight - 1) * viewPos.z / _FroxelToWorldParams.y;
-    float4 worldPos = mul(_ViewToWorldMat, viewPos);
+    
+    // Jitter
+    viewPos.x += _FroxelSampleOffset.x * GetFroxelTileWidth(viewPos.z);
+    viewPos.y += _FroxelSampleOffset.y * GetFroxelTileHeight(viewPos.z);
+
+    float4 worldPos = mul(_ViewToWorldMat, float4(viewPos, 1));
     worldPos /= worldPos.w;
     return worldPos.xyz;
 }
@@ -97,6 +116,11 @@ float3 WorldPos2FroxelPos(float3 worldPos)
 {
     float4 viewPos = mul(_WorldToViewMat, float4(worldPos, 1));
     viewPos /= viewPos.w;
+
+    // Jitter
+    viewPos.x -= _FroxelSampleOffset.x * GetFroxelTileWidth(viewPos.z);
+    viewPos.y -= _FroxelSampleOffset.y * GetFroxelTileHeight(viewPos.z);
+
     float3 froxelPos = 0;
     froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
     froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
@@ -168,11 +192,33 @@ float SampleShadow(float4 wpos)
     //1 tap hard shadow
     float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_ShadowMapTexture, shadowCoord.xy, shadowCoord.z);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
-
-    float4 res = shadow;
-    return res;
+    return shadow;
 }
 
+//
+// --------------------------------- Importance Sampling -------------------------------------------
+//
 
+// Samples the interval of homogeneous participating medium using the closed-form tracking approach
+// (proportionally to the transmittance).
+// Returns the offset from the start of the interval and the weight = (transmittance / pdf).
+// Ref: Monte Carlo Methods for Volumetric Light Transport Simulation, p. 5.
+void ImportanceSampleHomogeneousMedium(float rndVal, float extinction, float intervalLength,
+    out float offset, out float weight)
+{
+    // pdf    = extinction * exp(extinction * (intervalLength - t)) / (exp(intervalLength * extinction) - 1)
+    // pdf    = extinction * exp(-extinction * t) / (1 - exp(-extinction * intervalLength))
+    // weight = TransmittanceFromOpticalDepth(t) / pdf
+    // weight = exp(-extinction * t) / pdf
+    // weight = (1 - exp(-extinction * intervalLength)) / extinction
+    // weight = OpacityFromOpticalDepth(extinction * intervalLength) / extinction
+
+    float x = 1 - exp(-extinction * intervalLength);
+    float c = rcp(extinction);
+
+    // TODO: return 'rcpPdf' to support imperfect importance sampling...
+    weight = x * c;
+    offset = -log(1 - rndVal * x) * c;
+}
 
 #endif //VOLUMETRIC_HELPER
