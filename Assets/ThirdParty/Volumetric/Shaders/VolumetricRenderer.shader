@@ -68,7 +68,7 @@
 
             float4 frag(v2f IN) : SV_Target
             {
-                float3 viewDirWS = IN.viewDir / IN.viewDir.z;
+                float3 viewDirWS = IN.viewDir;// / IN.viewDir.z;
 
                 float depth = _CameraDepthTexture.SampleLevel(sampler_bilinear_clamp, IN.uv, 0).r;
                 float viewDepth = LinearEyeDepth(depth);

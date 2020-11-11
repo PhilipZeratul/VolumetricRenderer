@@ -85,7 +85,7 @@ float PhaseFunction(float g, float cosTheta)
 //
 
 // https://www.desmos.com/calculator/pd3c4qqsng
-float3 FroxelPos2WorldPos(float3 froxelPos)
+float3 FroxelPos2ViewPos(float3 froxelPos)
 {
     // Jitter
     froxelPos += float3(_FroxelSampleOffset.xy, 0);
@@ -94,17 +94,19 @@ float3 FroxelPos2WorldPos(float3 froxelPos)
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
     viewPos.x = (2.0 * froxelPos.x / _VolumeWidth - 1) * viewPos.z / _FroxelToWorldParams.x;
     viewPos.y = (2.0 * froxelPos.y / _VolumeHeight - 1) * viewPos.z / _FroxelToWorldParams.y;
+    return viewPos;
+}
 
+float3 FroxelPos2WorldPos(float3 froxelPos)
+{
+    float3 viewPos = FroxelPos2ViewPos(froxelPos);
     float4 worldPos = mul(_ViewToWorldMat, float4(viewPos, 1));
     worldPos /= worldPos.w;
     return worldPos.xyz;
 }
 
-float3 WorldPos2FroxelPos(float3 worldPos)
+float3 ViewPos2FroxelPos(float3 viewPos)
 {
-    float4 viewPos = mul(_WorldToViewMat, float4(worldPos, 1));
-    viewPos /= viewPos.w;
-
     float3 froxelPos = 0;
     froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
     froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
@@ -113,6 +115,15 @@ float3 WorldPos2FroxelPos(float3 worldPos)
     // Jitter
     froxelPos -= float3(_FroxelSampleOffset.xy, 0);
 
+    return froxelPos;
+}
+
+float3 WorldPos2FroxelPos(float3 worldPos)
+{
+    float4 viewPos = mul(_WorldToViewMat, float4(worldPos, 1));
+    viewPos /= viewPos.w;
+
+    float3 froxelPos = ViewPos2FroxelPos(viewPos.xyz);
     return froxelPos;
 }
 
@@ -132,19 +143,6 @@ float Depth2FroxelPosZ(float depth)
 {
     float froxelPosZ = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (depth - _NearPlane) / _FroxelToWorldParams.w + 1);
     return froxelPosZ;
-}
-
-float3 ViewPos2FroxelPos(float3 viewPos)
-{
-    float3 froxelPos = 0;
-    froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
-    froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
-    froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
-
-    // Jitter
-    froxelPos -= float3(_FroxelSampleOffset.xy, 0);
-
-    return froxelPos;
 }
 
 float3 FroxelPos2FroxelUvw(float3 froxelPos)

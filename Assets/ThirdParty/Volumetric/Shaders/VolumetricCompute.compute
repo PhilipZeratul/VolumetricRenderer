@@ -77,23 +77,20 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
     float4 accumulationVolume = _AccumulationVolume[prevPos];
     float3 accumuLight = accumulationVolume.rgb;
     float totalTransmittance = accumulationVolume.a;
-    //float alpha = 0.0;
 
     float4 materialVolumeA = _MaterialVolume_A[curPos];
     float4 scatterVolume = _ScatterVolume[curPos];
     float3 scatterCoef = materialVolumeA.rgb;
     float3 inScatter = scatterVolume.rgb;
     float extinction = scatterVolume.a;
-        
-    // TODO: Simplify stepLength calculaiton?
-    float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
-    float3 prevWorldPos = FroxelPos2WorldPos(uint3(prevPos)).xyz;
-    float stepLength = distance(prevWorldPos, curWorldPos);
+
+    float3 curViewPos = FroxelPos2ViewPos(uint3(curPos)).xyz;
+    float3 prevViewPos = FroxelPos2ViewPos(uint3(prevPos)).xyz;
+    float stepLength = curViewPos.z - prevViewPos.z;
 
     float transmittance = exp(-extinction * stepLength);
     totalTransmittance *= transmittance;
     accumuLight += inScatter * totalTransmittance * stepLength;
-    //alpha += (1 - transmittance) * (1 - alpha);
 
     _AccumulationVolume[curPos] = float4(accumuLight, totalTransmittance);
 }
@@ -101,7 +98,7 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
 [numthreads(8, 8, 16)]
 void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
 {
-    _ShadowVolume[pos] = _ShadowVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevShadowVolume[pos] * _TemporalBlendAlpha;
+    _ShadowVolume[pos] = lerp(_ShadowVolume[pos], _PrevShadowVolume[pos], _TemporalBlendAlpha);
     //_ShadowVolume[pos] = _PrevShadowVolume[pos];
 }
 
@@ -110,7 +107,7 @@ void TemporalBlendMaterialVolume(uint3 pos : SV_DispatchThreadID)
 {
     //uint3 reprojPos = mul(_ReprojMat, pos);
 
-    _MaterialVolume_A[pos] = _MaterialVolume_A[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_A[pos] * _TemporalBlendAlpha;
+    _MaterialVolume_A[pos] = lerp(_MaterialVolume_A[pos], _PrevMaterialVolume_A[pos], _TemporalBlendAlpha);
 }
 
 [numthreads(8, 8, 16)]
@@ -118,5 +115,5 @@ void TemporalBlendScatterVolume(uint3 pos : SV_DispatchThreadID)
 {
     //uint3 reprojPos = mul(_ReprojMat, pos);
 
-    _ScatterVolume[pos] = _ScatterVolume[pos] * (1 - _TemporalBlendAlpha) + _PrevScatterVolume[pos] * _TemporalBlendAlpha;
+    _ScatterVolume[pos] = lerp(_ScatterVolume[pos], + _PrevScatterVolume[pos], _TemporalBlendAlpha);
 }
