@@ -1,6 +1,8 @@
 #ifndef UNITY_RANDOM_INCLUDED
 #define UNITY_RANDOM_INCLUDED
 
+#define UINT_MAX 0xFFFFFFFFu
+
 #if !defined(SHADER_API_GLES)
 
 // A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.

@@ -296,13 +296,13 @@ namespace Volumetric
             //  (7)(5)    ( )( )    ( )( )    ( )( )    ( )( )    ( )(o)    ( )(x)    (o)(x)    (x)(x)
             // (2)(1)(3) ( )(o)( ) (o)(x)( ) (x)(x)(o) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x)
             //  (4)(6)    ( )( )    ( )( )    ( )( )    (o)( )    (x)( )    (x)(o)    (x)(x)    (x)(x)
-            seq[0] = new Vector3(0, 0, -0.5f + 1.0f / 7.0f);
-            seq[1] = new Vector3(-d, 0, -0.5f + 2.0f / 7.0f);
-            seq[2] = new Vector3(d, 0, -0.5f + 3.0f / 7.0f);
-            seq[3] = new Vector3(-r, -s, -0.5f + 4.0f / 7.0f);
-            seq[4] = new Vector3(r, s, -0.5f + 5.0f / 7.0f);
-            seq[5] = new Vector3(r, -s, -0.5f + 6.0f / 7.0f);
-            seq[6] = new Vector3(-r, s, -0.5f + 7.0f / 7.0f);
+            seq[0] = new Vector3(0, 0, 1 / 14f);
+            seq[1] = new Vector3(-d, 0, 3 / 14f);
+            seq[2] = new Vector3(d, 0, 5 / 14f);
+            seq[3] = new Vector3(-r, -s, 7 / 14f);
+            seq[4] = new Vector3(r, s, 9 / 14f);
+            seq[5] = new Vector3(r, -s, 11 / 14f);
+            seq[6] = new Vector3(-r, s, 13 / 14f);
 
             // Rotate the sampling pattern by 15 degrees.
             const float cos15 = 0.96592582628906828675f;

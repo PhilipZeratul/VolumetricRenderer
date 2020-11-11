@@ -2,6 +2,7 @@
 #define VOLUMETRIC_HELPER
 
 #include "UnityCG.cginc"
+#include "Random.hlsl"
 
 #define PI 3.1415926535
 #define EXPONENT 8.0
@@ -46,7 +47,7 @@ float4x4 _WorldToViewMat;
 
 float _TemporalOffset;
 float _TemporalBlendAlpha;
-float3 _FroxelSampleOffset; // -0.5 <-> 0.5
+float3 _FroxelSampleOffset; // xy: -0.5 <-> 0.5, z: 1/14 <-> 13/14
 
 //
 // ------------------------------------ Miscellaneous ----------------------------------------------
@@ -88,7 +89,8 @@ float PhaseFunction(float g, float cosTheta)
 float3 FroxelPos2ViewPos(float3 froxelPos)
 {
     // Jitter
-    froxelPos += float3(_FroxelSampleOffset.xy, 0);
+    //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
+    froxelPos.xy += _FroxelSampleOffset.xy;
 
     float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
@@ -113,7 +115,8 @@ float3 ViewPos2FroxelPos(float3 viewPos)
     froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
 
     // Jitter
-    froxelPos -= float3(_FroxelSampleOffset.xy, 0);
+    //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
+    froxelPos.xy += _FroxelSampleOffset.xy;
 
     return froxelPos;
 }
