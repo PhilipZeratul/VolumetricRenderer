@@ -63,7 +63,7 @@ namespace Volumetric
             CreateMaterialVolumes();
             CreateScatterVolume();
             CreateAccumulationTex();
-            GetHexagonalClosePackedSpheres7(froxelSampleOffsetSeq);
+            GetJitterSequence(froxelSampleOffsetSeq);
         }
 
         private void OnDestroy()
@@ -294,7 +294,7 @@ namespace Volumetric
         // The returned {x, y} coordinates (and all spheres) are all within the (-0.5, 0.5)^2 range.
         // The pattern has been rotated by 15 degrees to maximize the resolution along X and Y:
         // https://www.desmos.com/calculator/kcpfvltz7c
-        static void GetHexagonalClosePackedSpheres7(Vector3[] coords)
+        static void GetJitterSequence(Vector3[] seq)
         {
             float r = 0.17054068870105443882f;
             float d = 2 * r;
@@ -304,13 +304,13 @@ namespace Volumetric
             //  (7)(5)    ( )( )    ( )( )    ( )( )    ( )( )    ( )(o)    ( )(x)    (o)(x)    (x)(x)
             // (2)(1)(3) ( )(o)( ) (o)(x)( ) (x)(x)(o) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x)
             //  (4)(6)    ( )( )    ( )( )    ( )( )    (o)( )    (x)( )    (x)(o)    (x)(x)    (x)(x)
-            coords[0] = new Vector3(0, 0, -0.5f + 1.0f / 7.0f);
-            coords[1] = new Vector3(-d, 0, -0.5f + 2.0f / 7.0f);
-            coords[2] = new Vector3(d, 0, -0.5f + 3.0f / 7.0f);
-            coords[3] = new Vector3(-r, -s, -0.5f + 4.0f / 7.0f);
-            coords[4] = new Vector3(r, s, -0.5f + 5.0f / 7.0f);
-            coords[5] = new Vector3(r, -s, -0.5f + 6.0f / 7.0f);
-            coords[6] = new Vector3(-r, s, -0.5f + 7.0f / 7.0f);
+            seq[0] = new Vector3(0, 0, -0.5f + 1.0f / 7.0f);
+            seq[1] = new Vector3(-d, 0, -0.5f + 2.0f / 7.0f);
+            seq[2] = new Vector3(d, 0, -0.5f + 3.0f / 7.0f);
+            seq[3] = new Vector3(-r, -s, -0.5f + 4.0f / 7.0f);
+            seq[4] = new Vector3(r, s, -0.5f + 5.0f / 7.0f);
+            seq[5] = new Vector3(r, -s, -0.5f + 6.0f / 7.0f);
+            seq[6] = new Vector3(-r, s, -0.5f + 7.0f / 7.0f);
 
             // Rotate the sampling pattern by 15 degrees.
             const float cos15 = 0.96592582628906828675f;
@@ -318,10 +318,10 @@ namespace Volumetric
 
             for (int i = 0; i < 7; i++)
             {
-                Vector3 coord = coords[i];
+                Vector3 coord = seq[i];
 
-                coords[i].x = coord.x * cos15 - coord.y * sin15;
-                coords[i].y = coord.x * sin15 + coord.y * cos15;
+                seq[i].x = coord.x * cos15 - coord.y * sin15;
+                seq[i].y = coord.x * sin15 + coord.y * cos15;
             }
         }
     }
