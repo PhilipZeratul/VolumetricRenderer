@@ -17,13 +17,13 @@ void InitAllVolumes(uint3 pos : SV_DispatchThreadID)
 {
     _PrevShadowVolume[pos] = _ShadowVolume[pos];
     _PrevMaterialVolume_A[pos] = _MaterialVolume_A[pos];
-    _PrevMaterialVolume_B[pos] = _MaterialVolume_B[pos];
     _PrevScatterVolume[pos] = _ScatterVolume[pos];
 
     _ShadowVolume[pos] = 1;
     _MaterialVolume_A[pos] = 0;
     _MaterialVolume_B[pos] = 0;
     _ScatterVolume[pos] = 0;
+    _AccumulationVolume[pos] = float4(0, 0, 0, 1);
 }
 
 [numthreads(8, 8, 16)]
@@ -45,12 +45,12 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
     float visibility = _ShadowVolume[pos];
 
-    float4 materialA = _MaterialVolume_A[pos];
-    float4 materialB = _MaterialVolume_B[pos];
+    float4 materialVolumeA = _MaterialVolume_A[pos];
+    float4 materialVolumeB = _MaterialVolume_B[pos];
 
-    float3 scatterCoef = materialA.rgb;
-    float absorptCoef = materialA.a;
-    float phaseG = materialB.r;
+    float3 scatterCoef = materialVolumeA.rgb;
+    float absorptCoef = materialVolumeA.a;
+    float phaseG = materialVolumeB.r;
 
     float3 worldPos = FroxelPos2WorldPos(pos);
     float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
@@ -65,38 +65,31 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 [numthreads(8, 8, 1)]
 void Accumulation(uint2 pos : SV_DispatchThreadID)
 {
-    float3 accumuLight = 0.0;
-    float totalTransmittance = 1.0;
-    float alpha = 0.0;
+    uint3 curPos = uint3(pos.xy, _AccumulationSlice);
+    uint3 prevPos = uint3(pos.xy, _AccumulationSlice - 1);
+    
+    float4 accumulationVolume = _AccumulationVolume[prevPos];
+    float3 accumuLight = accumulationVolume.rgb;
+    float totalTransmittance = accumulationVolume.a;
+    //float alpha = 0.0;
 
-    float2 uv = FroxelPos2Uv(pos);
-    float depth = _CameraDepthTexture.SampleLevel(sampler_bilinear_clamp, uv, 0).r;
-    depth = LinearEyeDepth(depth);
-    float maxZ = Depth2FroxelPosZ(depth);
-
-    for (int i = 0; i < maxZ; i++)
-    {
-        uint3 curPos = uint3(pos.xy, i);
-        uint3 nextPos = uint3(pos.xy, i + 1);
-
-        float4 materialA = _MaterialVolume_A[curPos];
-        float4 scatterVolume = _ScatterVolume[curPos];
-        float3 scatterCoef = materialA.rgb;
-        float3 inScatter = scatterVolume.rgb;
-        float extinction = scatterVolume.a;
+    float4 materialVolumeA = _MaterialVolume_A[curPos];
+    float4 scatterVolume = _ScatterVolume[curPos];
+    float3 scatterCoef = materialVolumeA.rgb;
+    float3 inScatter = scatterVolume.rgb;
+    float extinction = scatterVolume.a;
         
-        // TODO: Simplify stepLength calculaiton?
-        float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
-        float3 nextWorldPos = FroxelPos2WorldPos(uint3(nextPos)).xyz;
-        float stepLength = distance(nextWorldPos, curWorldPos);
+    // TODO: Simplify stepLength calculaiton?
+    float3 curWorldPos = FroxelPos2WorldPos(uint3(curPos)).xyz;
+    float3 prevWorldPos = FroxelPos2WorldPos(uint3(prevPos)).xyz;
+    float stepLength = distance(prevWorldPos, curWorldPos);
 
-        float transmittance = exp(-extinction * stepLength);
-        totalTransmittance *= transmittance;
-        accumuLight += inScatter * totalTransmittance * stepLength;
-        alpha += (1 - transmittance) * (1 - alpha);
-    }
+    float transmittance = exp(-extinction * stepLength);
+    totalTransmittance *= transmittance;
+    accumuLight += inScatter * totalTransmittance * stepLength;
+    //alpha += (1 - transmittance) * (1 - alpha);
 
-    _AccumulationTex[pos] = float4(accumuLight, totalTransmittance);
+    _AccumulationVolume[curPos] = float4(accumuLight, totalTransmittance);
 }
 
 [numthreads(8, 8, 16)]
@@ -112,7 +105,6 @@ void TemporalBlendMaterialVolume(uint3 pos : SV_DispatchThreadID)
     //uint3 reprojPos = mul(_ReprojMat, pos);
 
     _MaterialVolume_A[pos] = _MaterialVolume_A[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_A[pos] * _TemporalBlendAlpha;
-    _MaterialVolume_B[pos] = _MaterialVolume_B[pos] * (1 - _TemporalBlendAlpha) + _PrevMaterialVolume_B[pos] * _TemporalBlendAlpha;
 }
 
 [numthreads(8, 8, 16)]

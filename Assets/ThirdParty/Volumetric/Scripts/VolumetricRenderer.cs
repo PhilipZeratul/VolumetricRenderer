@@ -62,7 +62,7 @@ namespace Volumetric
             InitShadowVolumetric();
             CreateMaterialVolumes();
             CreateScatterVolume();
-            CreateAccumulationTex();
+            CreateAccumulationVolume();
             GetJitterSequence(froxelSampleOffsetSeq);
         }
 
@@ -91,7 +91,7 @@ namespace Volumetric
             SetPropertyTemporal();
             //CalcTemporalOffset();
 
-            ClearAllVolumes();
+            InitAllVolumes();
             WriteShadowVolume();
         }
 
@@ -140,7 +140,7 @@ namespace Volumetric
         private readonly int worldToViewMatId = Shader.PropertyToID("_WorldToViewMat");
         private readonly int froxelToWorldParamsId = Shader.PropertyToID("_FroxelToWorldParams");
 
-        private void ClearAllVolumes()
+        private void InitAllVolumes()
         {
             clearKernel = compute.FindKernel("InitAllVolumes");
             beforeGBufferCommand.Clear();
@@ -148,10 +148,10 @@ namespace Volumetric
             beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, materialVolumeAId, materialVolumeATargetId);
             beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, materialVolumeBId, materialVolumeBTargetId);
             beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, scatterVolumeId, scatterVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, accumulationVolumeId, accumulationVolumeTargetId);
 
             beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
             beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevMaterialVolumeBId, prevMaterialVolumeBTargetId);
             beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
 
             beforeGBufferCommand.DispatchCompute(compute, clearKernel, dispatchWidth, dispatchHeight, dispatchDepth);
@@ -218,14 +218,11 @@ namespace Volumetric
         private RenderTargetIdentifier prevShadowVolumeTargetId;
         private RenderTexture prevMaterialVolumeA;
         private RenderTargetIdentifier prevMaterialVolumeATargetId;
-        private RenderTexture prevMaterialVolumeB;
-        private RenderTargetIdentifier prevMaterialVolumeBTargetId;
         private RenderTexture prevScatterVolume;
         private RenderTargetIdentifier prevScatterVolumeTargetId;
 
         private readonly int prevShadowVolumeId = Shader.PropertyToID("_PrevShadowVolume");
         private readonly int prevMaterialVolumeAId = Shader.PropertyToID("_PrevMaterialVolume_A");
-        private readonly int prevMaterialVolumeBId = Shader.PropertyToID("_PrevMaterialVolume_B");
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
         private readonly int temporalOffsetId = Shader.PropertyToID("_TemporalOffset");
@@ -236,7 +233,6 @@ namespace Volumetric
         {
             CreateVolume(ref prevShadowVolume, ref prevShadowVolumeTargetId, "Prev Shadow Volume", RenderTextureFormat.RHalf);
             CreateVolume(ref prevMaterialVolumeA, ref prevMaterialVolumeATargetId, "Prev Material Volume A");
-            CreateVolume(ref prevMaterialVolumeB, ref prevMaterialVolumeBTargetId, "Prev Material Volume B");
             CreateVolume(ref prevScatterVolume, ref prevScatterVolumeTargetId, "Prev Scatter Volume");
         }
 
@@ -276,7 +272,6 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, temporalBlendMaterialVolumeKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, temporalBlendMaterialVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
             command.SetComputeTextureParam(compute, temporalBlendMaterialVolumeKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
-            command.SetComputeTextureParam(compute, temporalBlendMaterialVolumeKernel, prevMaterialVolumeBId, prevMaterialVolumeBTargetId);
 
             command.DispatchCompute(compute, temporalBlendMaterialVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
@@ -529,29 +524,17 @@ namespace Volumetric
     // Accumulation Pass
     public partial class VolumetricRenderer
     {
-        private RenderTexture accumulationTex;
-        private RenderTargetIdentifier accumulationTexTargetId;
+        private RenderTexture accumulationVolume;
+        private RenderTargetIdentifier accumulationVolumeTargetId;
 
-        private readonly int accumulationTexId = Shader.PropertyToID("_AccumulationTex");
-        private readonly int cameraDepthTexId = Shader.PropertyToID("_CameraDepthTexture");
+        private readonly int accumulationVolumeId = Shader.PropertyToID("_AccumulationVolume");
+        private readonly int accumulationSliceId = Shader.PropertyToID("_AccumulationSlice");
 
         private int accumulationKernel;
 
-        private void CreateAccumulationTex()
+        private void CreateAccumulationVolume()
         {
-            if (accumulationTex != null)
-            {
-                GameObject.Destroy(accumulationTex);
-            }
-            accumulationTex = new RenderTexture(volumeWidth, volumeHeight, 0, RenderTextureFormat.ARGBFloat)
-            {
-                name = "Accumulation Tex",
-                filterMode = FilterMode.Bilinear,
-                dimension = TextureDimension.Tex2D,
-                enableRandomWrite = true
-            };
-            accumulationTex.Create();
-            accumulationTexTargetId = new RenderTargetIdentifier(accumulationTex);
+            CreateVolume(ref accumulationVolume, ref accumulationVolumeTargetId, "Accumulation Volume");
         }
 
         private void Accumulate()
@@ -559,10 +542,13 @@ namespace Volumetric
             accumulationKernel = compute.FindKernel("Accumulation");
             command.SetComputeTextureParam(compute, accumulationKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
-            command.SetComputeTextureParam(compute, accumulationKernel, accumulationTexId, accumulationTexTargetId);
-            compute.SetTextureFromGlobal(accumulationKernel, cameraDepthTexId, cameraDepthTexId);
+            command.SetComputeTextureParam(compute, accumulationKernel, accumulationVolumeId, accumulationVolumeTargetId);
 
-            command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
+            for (int i = 1; i < volumeDepth; i++)
+            {
+                command.SetComputeIntParam(compute, accumulationSliceId, i);
+                command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
+            }
         }
     }
 
@@ -572,7 +558,7 @@ namespace Volumetric
         private Vector3[] frustumCorners = new Vector3[4];
         private Vector4[] screenTriangleCorners = new Vector4[3];
 
-        private readonly int scatterVolumeSrvId = Shader.PropertyToID("_ScatterVolumeSrv");
+        private readonly int accumulationVolumeSrvId = Shader.PropertyToID("_AccumulationVolumeSrv");
         private readonly int screenQuadCornersId = Shader.PropertyToID("_ScreenQuadCorners");
         private readonly int maxStepsId = Shader.PropertyToID("_MaxSteps");
 
@@ -592,11 +578,11 @@ namespace Volumetric
             volumetricMaterial.SetVector(froxelToWorldParamsId, froxelToWorldParams);
             volumetricMaterial.SetMatrix(worldToViewMatId, worldToViewMat);
             volumetricMaterial.SetInt(maxStepsId, maxSteps);
-            volumetricMaterial.SetInt(volumeWidthId, volumeWidth);
-            volumetricMaterial.SetInt(volumeHeightId, volumeHeight);
-            volumetricMaterial.SetInt(volumeDepthId, volumeDepth);
+            volumetricMaterial.SetInt(volumeWidthId, volumeWidth - 1);
+            volumetricMaterial.SetInt(volumeHeightId, volumeHeight - 1);
+            volumetricMaterial.SetInt(volumeDepthId, volumeDepth - 1);
             volumetricMaterial.SetFloat(volumeDistanceId, volumeDistance);
-            volumetricMaterial.SetTexture(scatterVolumeSrvId, scatterVolume);
+            volumetricMaterial.SetTexture(accumulationVolumeSrvId, accumulationVolume);
         }
     }
 
@@ -612,7 +598,7 @@ namespace Volumetric
             volumetricMaterial.SetTexture(materialVolumeAId, materialVolumeA);
             volumetricMaterial.SetTexture(materialVolumeBId, materialVolumeB);
             volumetricMaterial.SetTexture(scatterVolumeId, scatterVolume);
-            volumetricMaterial.SetTexture(accumulationTexId, accumulationTex);
+            volumetricMaterial.SetTexture(accumulationVolumeId, accumulationVolume);
         }
 
         private void RenderDebug(RenderTexture source, RenderTexture destination, Material mat)

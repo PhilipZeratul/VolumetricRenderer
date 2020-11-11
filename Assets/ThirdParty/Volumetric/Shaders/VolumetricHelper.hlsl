@@ -16,9 +16,9 @@ SamplerComparisonState sampler_ShadowMapTexture;
 
 RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
 RWTexture3D<float4> _MaterialVolume_A, _PrevMaterialVolume_A; // RGB: Scattering Coef, A: Absorption
-RWTexture3D<float4> _MaterialVolume_B, _PrevMaterialVolume_B; // R: Phase G
+RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: Transmission
-RWTexture2D<float4> _AccumulationTex; // RGB: Accumulated Light, A: Transmittance
+RWTexture3D<float4> _AccumulationVolume; // RGB: Accumulated Light, A: Total Transmittance
 
 RWTexture2D<float> _EsmShadowMapUav;
 Texture2D<float> _EsmShadowMapTex;
@@ -32,6 +32,7 @@ float _PhaseG;
 Texture3D<float> _NoiseTex;
 float3 _NoiseScrollingSpeed;
 float3 _NoiseTiling;
+int _AccumulationSlice;
 
 float3 _LightColor;
 float3 _LightDir;
@@ -87,7 +88,7 @@ float PhaseFunction(float g, float cosTheta)
 float3 FroxelPos2WorldPos(float3 froxelPos)
 {
     // Jitter
-    froxelPos += _FroxelSampleOffset;
+    //froxelPos += _FroxelSampleOffset;
 
     float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
@@ -110,7 +111,7 @@ float3 WorldPos2FroxelPos(float3 worldPos)
     froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
 
     // Jitter
-    froxelPos -= _FroxelSampleOffset;
+    //froxelPos -= _FroxelSampleOffset;
 
     return froxelPos;
 }
@@ -131,6 +132,24 @@ float Depth2FroxelPosZ(float depth)
 {
     float froxelPosZ = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (depth - _NearPlane) / _FroxelToWorldParams.w + 1);
     return froxelPosZ;
+}
+
+float3 ViewPos2FroxelPos(float3 viewPos)
+{
+    float3 froxelPos = 0;
+    froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
+    froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
+    froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
+
+    // Jitter
+    //froxelPos -= _FroxelSampleOffset;
+
+    return froxelPos;
+}
+
+float3 FroxelPos2FroxelUvw(float3 froxelPos)
+{
+    return froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
 }
 
 //
