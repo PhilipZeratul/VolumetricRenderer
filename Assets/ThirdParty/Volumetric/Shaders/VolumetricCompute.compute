@@ -1,5 +1,6 @@
 ﻿#pragma enable_d3d11_debug_symbols
 
+#pragma kernel SaveHistory
 #pragma kernel InitAllVolumes
 #pragma kernel WriteMaterialVolumeConstant
 #pragma kernel WriteMaterialVolumeConstant _WITH_NOISE
@@ -13,12 +14,17 @@
 
 // Kernels
 [numthreads(8, 8, 16)]
-void InitAllVolumes(uint3 pos : SV_DispatchThreadID)
+void SaveHistory(uint3 pos : SV_DispatchThreadID)
 {
     _PrevShadowVolume[pos] = _ShadowVolume[pos];
     _PrevMaterialVolume_A[pos] = _MaterialVolume_A[pos];
     _PrevScatterVolume[pos] = _ScatterVolume[pos];
+    _PrevAccumulationVolume[pos] = _AccumulationVolume[pos];
+}
 
+[numthreads(8, 8, 16)]
+void InitAllVolumes(uint3 pos : SV_DispatchThreadID)
+{
     _ShadowVolume[pos] = 1;
     _MaterialVolume_A[pos] = 0;
     _MaterialVolume_B[pos] = 0;

@@ -89,7 +89,6 @@ namespace Volumetric
             SetPropertyGeneral();
 
             SetPropertyTemporal();
-            //CalcTemporalOffset();
 
             InitAllVolumes();
             WriteShadowVolume();
@@ -100,13 +99,13 @@ namespace Volumetric
             command.Clear();
             command.BeginSample("Volumetric Renderer");
 
-            //TemporalBlendShadowVolume();
+            TemporalBlendShadowVolume();
 
             WriteMaterialVolume();
-            //TemporalBlendMaterialVolume();
+            TemporalBlendMaterialVolume();
 
             WriteScatterVolume();
-            //TemporalBlendScatterVolume();
+            TemporalBlendScatterVolume();
 
             Accumulate();
 
@@ -130,7 +129,9 @@ namespace Volumetric
         public float depthDistribution = 0.5f;
         private CommandBuffer beforeGBufferCommand;
 
-        private int clearKernel;
+        private int initKernel;
+        private int saveHistoryKernel;
+
         private Matrix4x4 worldToViewMat;
         private Matrix4x4 viewToWorldMat;
         private Vector4 froxelToWorldParams = new Vector4();
@@ -142,19 +143,27 @@ namespace Volumetric
 
         private void InitAllVolumes()
         {
-            clearKernel = compute.FindKernel("InitAllVolumes");
+            saveHistoryKernel = compute.FindKernel("SaveHistory");
+            initKernel = compute.FindKernel("InitAllVolumes");
             beforeGBufferCommand.Clear();
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, shadowVolumeId, shadowVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, materialVolumeAId, materialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, materialVolumeBId, materialVolumeBTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, scatterVolumeId, scatterVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, accumulationVolumeId, accumulationVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, shadowVolumeId, shadowVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, materialVolumeAId, materialVolumeATargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, scatterVolumeId, scatterVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, accumulationVolumeId, accumulationVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevAccumulationVolumeId, prevAccumulationVolumeTargetId);
 
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, clearKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
+            beforeGBufferCommand.DispatchCompute(compute, saveHistoryKernel, dispatchWidth, dispatchHeight, dispatchDepth);
 
-            beforeGBufferCommand.DispatchCompute(compute, clearKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+            beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, shadowVolumeId, shadowVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, materialVolumeAId, materialVolumeATargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, materialVolumeBId, materialVolumeBTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, scatterVolumeId, scatterVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, accumulationVolumeId, accumulationVolumeTargetId);
+
+            beforeGBufferCommand.DispatchCompute(compute, initKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
 
         private void CreateVolume(ref RenderTexture volume, ref RenderTargetIdentifier id, string name,
@@ -208,10 +217,7 @@ namespace Volumetric
     public partial class VolumetricRenderer
     {
         [Range(0f, 1f)]
-        public float temporalBlendAlpha = 0.05f;
-        public int temporalCount = 16;
-        private float temporalOffset; // 0f - 1f
-        private int jitterIndex = 1;
+        public float temporalBlendAlpha = 1 / 7f;
         private Vector3[] froxelSampleOffsetSeq = new Vector3[7];
 
         private RenderTexture prevShadowVolume;
@@ -220,12 +226,14 @@ namespace Volumetric
         private RenderTargetIdentifier prevMaterialVolumeATargetId;
         private RenderTexture prevScatterVolume;
         private RenderTargetIdentifier prevScatterVolumeTargetId;
+        private RenderTexture prevAccumulationVolume;
+        private RenderTargetIdentifier prevAccumulationVolumeTargetId;
 
         private readonly int prevShadowVolumeId = Shader.PropertyToID("_PrevShadowVolume");
         private readonly int prevMaterialVolumeAId = Shader.PropertyToID("_PrevMaterialVolume_A");
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
+        private readonly int prevAccumulationVolumeId = Shader.PropertyToID("_PrevAccumulationVolume");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
-        private readonly int temporalOffsetId = Shader.PropertyToID("_TemporalOffset");
         private readonly int froxelSampleOffsetId = Shader.PropertyToID("_FroxelSampleOffset");
         
 
@@ -234,26 +242,15 @@ namespace Volumetric
             CreateVolume(ref prevShadowVolume, ref prevShadowVolumeTargetId, "Prev Shadow Volume", RenderTextureFormat.RHalf);
             CreateVolume(ref prevMaterialVolumeA, ref prevMaterialVolumeATargetId, "Prev Material Volume A");
             CreateVolume(ref prevScatterVolume, ref prevScatterVolumeTargetId, "Prev Scatter Volume");
-        }
-
-        // TODO: Use dither.
-        private void CalcTemporalOffset()
-        {
-            if (jitterIndex > temporalCount)
-            {
-                jitterIndex = 0;
-            }
-            temporalOffset = (float)jitterIndex / (float)temporalCount;
-            jitterIndex++;
-
-            compute.SetFloat(temporalOffsetId, temporalOffset);
-            shadowCompute.SetFloat(temporalOffsetId, temporalOffset);
+            CreateVolume(ref prevAccumulationVolume, ref prevAccumulationVolumeTargetId, "Prev Accumulation Volume");
         }
 
         private void SetPropertyTemporal()
         {
             compute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
+            compute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
             shadowCompute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
+            shadowCompute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
         }
 
         private void TemporalBlendShadowVolume()

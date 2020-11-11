@@ -18,7 +18,7 @@ RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
 RWTexture3D<float4> _MaterialVolume_A, _PrevMaterialVolume_A; // RGB: Scattering Coef, A: Absorption
 RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: Transmission
-RWTexture3D<float4> _AccumulationVolume; // RGB: Accumulated Light, A: Total Transmittance
+RWTexture3D<float4> _AccumulationVolume, _PrevAccumulationVolume; // RGB: Accumulated Light, A: Total Transmittance
 
 RWTexture2D<float> _EsmShadowMapUav;
 Texture2D<float> _EsmShadowMapTex;
@@ -88,7 +88,7 @@ float PhaseFunction(float g, float cosTheta)
 float3 FroxelPos2WorldPos(float3 froxelPos)
 {
     // Jitter
-    //froxelPos += _FroxelSampleOffset;
+    froxelPos += float3(_FroxelSampleOffset.xy, 0);
 
     float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
@@ -111,7 +111,7 @@ float3 WorldPos2FroxelPos(float3 worldPos)
     froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
 
     // Jitter
-    //froxelPos -= _FroxelSampleOffset;
+    froxelPos -= float3(_FroxelSampleOffset.xy, 0);
 
     return froxelPos;
 }
@@ -142,7 +142,7 @@ float3 ViewPos2FroxelPos(float3 viewPos)
     froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
 
     // Jitter
-    //froxelPos -= _FroxelSampleOffset;
+    froxelPos -= float3(_FroxelSampleOffset.xy, 0);
 
     return froxelPos;
 }

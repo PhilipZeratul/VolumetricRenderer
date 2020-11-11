@@ -68,7 +68,7 @@
 
             float4 frag(v2f IN) : SV_Target
             {
-                float3 viewDirWS = IN.viewDir;
+                float3 viewDirWS = IN.viewDir / IN.viewDir.z;
 
                 float depth = _CameraDepthTexture.SampleLevel(sampler_bilinear_clamp, IN.uv, 0).r;
                 float viewDepth = LinearEyeDepth(depth);
@@ -85,6 +85,8 @@
                 float4 mainTex = UNITY_SAMPLE_TEX2D(_MainTex, IN.uv);
                 float4 color = 1;
                 color.rgb = mainTex * totalTransmittance + accumuLight;
+
+                //color.rgb = accumuLight;
 
                 return color;
             }
