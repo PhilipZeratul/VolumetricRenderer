@@ -103,7 +103,16 @@ void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
 {
     float3 worldPos = FroxelPos2WorldPos(pos);
     float3 prevFroxelPos = WorldPos2PrevFroxelPos(worldPos);
-    _ShadowVolume[pos] = lerp(_ShadowVolume[pos], _PrevShadowVolume[pos], _TemporalBlendAlpha);
+    prevFroxelPos = round(prevFroxelPos);
+    float prevShadow = _PrevShadowVolume[prevFroxelPos];
+    
+    // A quick and dirty method to reject samples out of previous frustum.
+    // May reject some valid 0 values, but it doesn't hurt.
+    bool reprojSuccess = prevShadow != 0;
+    if (reprojSuccess)
+    {
+        _ShadowVolume[pos] = lerp(_ShadowVolume[pos], _PrevShadowVolume[prevFroxelPos], _TemporalBlendAlpha);
+    }
 }
 
 [numthreads(8, 8, 16)]
