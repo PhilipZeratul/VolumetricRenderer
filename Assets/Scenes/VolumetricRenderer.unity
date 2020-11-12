@@ -646,8 +646,7 @@ MonoBehaviour:
   shader: {fileID: 4800000, guid: f441eea31f8e6b24e9ca7abdb842ae07, type: 3}
   compute: {fileID: 7200000, guid: 0208d82e650a4c54ba9650361e91f606, type: 3}
   depthDistribution: 0.5
-  temporalBlendAlpha: 0.05
-  temporalCount: 4
+  temporalBlendAlpha: 0.84
   shadowCompute: {fileID: 7200000, guid: e4a97024f31f6a74d9b612215ab162df, type: 3}
   slice: 255
 --- !u!114 &534669907

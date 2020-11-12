@@ -87,6 +87,7 @@
                 color.rgb = mainTex * totalTransmittance + accumuLight;
 
                 //color.rgb = accumuLight;
+                color.a = totalTransmittance;
 
                 return color;
             }

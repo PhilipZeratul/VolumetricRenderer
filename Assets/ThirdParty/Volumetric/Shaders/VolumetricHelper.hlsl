@@ -86,16 +86,23 @@ float PhaseFunction(float g, float cosTheta)
 //
 
 // https://www.desmos.com/calculator/pd3c4qqsng
-float3 FroxelPos2ViewPos(float3 froxelPos)
+float3 FroxelPos2ViewPosNoJitter(float3 froxelPos)
 {
-    // Jitter
-    //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
-    froxelPos.xy += _FroxelSampleOffset.xy;
-
     float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
     viewPos.x = (2.0 * froxelPos.x / _VolumeWidth - 1) * viewPos.z / _FroxelToWorldParams.x;
     viewPos.y = (2.0 * froxelPos.y / _VolumeHeight - 1) * viewPos.z / _FroxelToWorldParams.y;
+    return viewPos;
+}
+
+float3 FroxelPos2ViewPos(float3 froxelPos)
+{
+    // Jitter
+    //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
+    froxelPos.z += _FroxelSampleOffset.z;
+    //froxelPos.xy += _FroxelSampleOffset.xy;
+
+    float3 viewPos = FroxelPos2ViewPosNoJitter(froxelPos);
     return viewPos;
 }
 
@@ -116,7 +123,8 @@ float3 ViewPos2FroxelPos(float3 viewPos)
 
     // Jitter
     //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
-    froxelPos.xy += _FroxelSampleOffset.xy;
+    froxelPos.z += _FroxelSampleOffset.z;
+    //froxelPos.xy += _FroxelSampleOffset.xy;
 
     return froxelPos;
 }

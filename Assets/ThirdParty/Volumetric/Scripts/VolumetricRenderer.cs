@@ -85,10 +85,13 @@ namespace Volumetric
 
         private void OnPreRender()
         {
+            beforeGBufferCommand.Clear();
+
+            SaveHistory();
+            SetPropertyTemporal();
+            
             CalculateMatrices();
             SetPropertyGeneral();
-
-            SetPropertyTemporal();
 
             InitAllVolumes();
             WriteShadowVolume();
@@ -130,7 +133,6 @@ namespace Volumetric
         private CommandBuffer beforeGBufferCommand;
 
         private int initKernel;
-        private int saveHistoryKernel;
 
         private Matrix4x4 worldToViewMat;
         private Matrix4x4 viewToWorldMat;
@@ -143,19 +145,7 @@ namespace Volumetric
 
         private void InitAllVolumes()
         {
-            saveHistoryKernel = compute.FindKernel("SaveHistory");
             initKernel = compute.FindKernel("InitAllVolumes");
-            beforeGBufferCommand.Clear();
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, shadowVolumeId, shadowVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, materialVolumeAId, materialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, scatterVolumeId, scatterVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, accumulationVolumeId, accumulationVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevAccumulationVolumeId, prevAccumulationVolumeTargetId);
-
-            beforeGBufferCommand.DispatchCompute(compute, saveHistoryKernel, dispatchWidth, dispatchHeight, dispatchDepth);
 
             beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, shadowVolumeId, shadowVolumeTargetId);
             beforeGBufferCommand.SetComputeTextureParam(compute, initKernel, materialVolumeAId, materialVolumeATargetId);
@@ -219,6 +209,8 @@ namespace Volumetric
         [Range(0f, 1f)]
         public float temporalBlendAlpha = 1 / 7f;
         private Vector3[] froxelSampleOffsetSeq = new Vector3[7];
+        private Matrix4x4 prevWorldToViewMat;
+        private int saveHistoryKernel;
 
         private RenderTexture prevShadowVolume;
         private RenderTargetIdentifier prevShadowVolumeTargetId;
@@ -235,7 +227,7 @@ namespace Volumetric
         private readonly int prevAccumulationVolumeId = Shader.PropertyToID("_PrevAccumulationVolume");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
         private readonly int froxelSampleOffsetId = Shader.PropertyToID("_FroxelSampleOffset");
-        
+        private readonly int prevWorldToViewMatId = Shader.PropertyToID("_PrevWorldToViewMat");
 
         private void CreatePrevVolumes()
         {
@@ -249,8 +241,8 @@ namespace Volumetric
         {
             compute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
             compute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
+            compute.SetMatrix(prevWorldToViewMatId, prevWorldToViewMat);
             shadowCompute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
-            shadowCompute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
         }
 
         private void TemporalBlendShadowVolume()
@@ -282,11 +274,29 @@ namespace Volumetric
             command.DispatchCompute(compute, temporalBlendScatterVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
 
+        private void SaveHistory()
+        {
+            saveHistoryKernel = compute.FindKernel("SaveHistory");
+
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, shadowVolumeId, shadowVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, materialVolumeAId, materialVolumeATargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, scatterVolumeId, scatterVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, accumulationVolumeId, accumulationVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
+            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevAccumulationVolumeId, prevAccumulationVolumeTargetId);
+
+            beforeGBufferCommand.DispatchCompute(compute, saveHistoryKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+
+            prevWorldToViewMat = worldToViewMat;
+        }
+
         // Ref: https://en.wikipedia.org/wiki/Close-packing_of_equal_spheres
         // The returned {x, y} coordinates (and all spheres) are all within the (-0.5, 0.5)^2 range.
         // The pattern has been rotated by 15 degrees to maximize the resolution along X and Y:
         // https://www.desmos.com/calculator/kcpfvltz7c
-        static void GetJitterSequence(Vector3[] seq)
+        private static void GetJitterSequence(Vector3[] seq)
         {
             float r = 0.17054068870105443882f;
             float d = 2 * r;

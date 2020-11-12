@@ -84,8 +84,8 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
     float3 inScatter = scatterVolume.rgb;
     float extinction = scatterVolume.a;
 
-    float3 curViewPos = FroxelPos2ViewPos(uint3(curPos)).xyz;
-    float3 prevViewPos = FroxelPos2ViewPos(uint3(prevPos)).xyz;
+    float3 curViewPos = FroxelPos2ViewPosNoJitter(uint3(curPos)).xyz;
+    float3 prevViewPos = FroxelPos2ViewPosNoJitter(uint3(prevPos)).xyz;
     float stepLength = curViewPos.z - prevViewPos.z;
 
     float transmittance = exp(-extinction * stepLength);
