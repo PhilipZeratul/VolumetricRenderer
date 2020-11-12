@@ -44,6 +44,7 @@ float _NearPlane, _VolumeDistance;
 float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y, cot(Fov_y / 2), z: c * (f - n * f / d) + 1, w: d / c / f
 float4x4 _ViewToWorldMat;
 float4x4 _WorldToViewMat;
+float4x4 _PrevWorldToViewMat;
 
 float _TemporalOffset;
 float _TemporalBlendAlpha;
@@ -85,24 +86,25 @@ float PhaseFunction(float g, float cosTheta)
 // ------------------------------------ Position Transformation ----------------------------------------------
 //
 
+float3 JitterFroxelPos(float3 froxelPos)
+{
+    // Jitter
+    float3 jitter = 0;
+    jitter.xy = _FroxelSampleOffset.xy * 0.7;
+    jitter.z = frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z);
+    //froxelPos.z += _FroxelSampleOffset.z;
+    froxelPos += jitter;
+    return froxelPos;
+}
+
 // https://www.desmos.com/calculator/pd3c4qqsng
-float3 FroxelPos2ViewPosNoJitter(float3 froxelPos)
+float3 FroxelPos2ViewPos(float3 froxelPos)
 {
     float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
     viewPos.x = (2.0 * froxelPos.x / _VolumeWidth - 1) * viewPos.z / _FroxelToWorldParams.x;
     viewPos.y = (2.0 * froxelPos.y / _VolumeHeight - 1) * viewPos.z / _FroxelToWorldParams.y;
     return viewPos;
-}
-
-float3 FroxelPos2ViewPos(float3 froxelPos)
-{
-    // Jitter
-    //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
-    froxelPos.z += _FroxelSampleOffset.z;
-    //froxelPos.xy += _FroxelSampleOffset.xy;
-
-    float3 viewPos = FroxelPos2ViewPosNoJitter(froxelPos);
     return viewPos;
 }
 
@@ -120,11 +122,6 @@ float3 ViewPos2FroxelPos(float3 viewPos)
     froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
     froxelPos.x = _VolumeWidth * (_FroxelToWorldParams.x * viewPos.x / viewPos.z + 1) / 2.0;
     froxelPos.y = _VolumeHeight * (_FroxelToWorldParams.y * viewPos.y / viewPos.z + 1) / 2.0;
-
-    // Jitter
-    //froxelPos.z += frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z) * 0.7;
-    froxelPos.z += _FroxelSampleOffset.z;
-    //froxelPos.xy += _FroxelSampleOffset.xy;
 
     return froxelPos;
 }
@@ -159,6 +156,15 @@ float Depth2FroxelPosZ(float depth)
 float3 FroxelPos2FroxelUvw(float3 froxelPos)
 {
     return froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
+}
+
+float3 WorldPos2PrevFroxelPos(float3 worldPos)
+{
+    float4 viewPos = mul(_PrevWorldToViewMat, float4(worldPos, 1));
+    viewPos /= viewPos.w;
+
+    float3 froxelPos = ViewPos2FroxelPos(viewPos.xyz);
+    return froxelPos;
 }
 
 //
@@ -208,32 +214,6 @@ float SampleShadow(float4 wpos)
     float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_ShadowMapTexture, shadowCoord.xy, shadowCoord.z);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
     return shadow;
-}
-
-//
-// --------------------------------- Importance Sampling -------------------------------------------
-//
-
-// Samples the interval of homogeneous participating medium using the closed-form tracking approach
-// (proportionally to the transmittance).
-// Returns the offset from the start of the interval and the weight = (transmittance / pdf).
-// Ref: Monte Carlo Methods for Volumetric Light Transport Simulation, p. 5.
-void ImportanceSampleHomogeneousMedium(float rndVal, float extinction, float intervalLength,
-    out float offset, out float weight)
-{
-    // pdf    = extinction * exp(extinction * (intervalLength - t)) / (exp(intervalLength * extinction) - 1)
-    // pdf    = extinction * exp(-extinction * t) / (1 - exp(-extinction * intervalLength))
-    // weight = TransmittanceFromOpticalDepth(t) / pdf
-    // weight = exp(-extinction * t) / pdf
-    // weight = (1 - exp(-extinction * intervalLength)) / extinction
-    // weight = OpacityFromOpticalDepth(extinction * intervalLength) / extinction
-
-    float x = 1 - exp(-extinction * intervalLength);
-    float c = rcp(extinction);
-
-    // TODO: return 'rcpPdf' to support imperfect importance sampling...
-    weight = x * c;
-    offset = -log(1 - rndVal * x) * c;
 }
 
 #endif //VOLUMETRIC_HELPER

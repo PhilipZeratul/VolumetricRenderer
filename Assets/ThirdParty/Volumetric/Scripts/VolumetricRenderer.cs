@@ -87,7 +87,6 @@ namespace Volumetric
         {
             beforeGBufferCommand.Clear();
 
-            SaveHistory();
             SetPropertyTemporal();
             
             CalculateMatrices();
@@ -121,6 +120,7 @@ namespace Volumetric
             //RenderDebug(source, destination, volumetricMaterial);
 #endif
 
+            SaveHistory();
             command.EndSample("Volumetric Renderer");
         }
     }
@@ -278,16 +278,16 @@ namespace Volumetric
         {
             saveHistoryKernel = compute.FindKernel("SaveHistory");
 
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, shadowVolumeId, shadowVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, materialVolumeAId, materialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, scatterVolumeId, scatterVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, accumulationVolumeId, accumulationVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
-            beforeGBufferCommand.SetComputeTextureParam(compute, saveHistoryKernel, prevAccumulationVolumeId, prevAccumulationVolumeTargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, shadowVolumeId, shadowVolumeTargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, materialVolumeAId, materialVolumeATargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, scatterVolumeId, scatterVolumeTargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, accumulationVolumeId, accumulationVolumeTargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
+            command.SetComputeTextureParam(compute, saveHistoryKernel, prevAccumulationVolumeId, prevAccumulationVolumeTargetId);
 
-            beforeGBufferCommand.DispatchCompute(compute, saveHistoryKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+            command.DispatchCompute(compute, saveHistoryKernel, dispatchWidth, dispatchHeight, dispatchDepth);
 
             prevWorldToViewMat = worldToViewMat;
         }
@@ -296,6 +296,7 @@ namespace Volumetric
         // The returned {x, y} coordinates (and all spheres) are all within the (-0.5, 0.5)^2 range.
         // The pattern has been rotated by 15 degrees to maximize the resolution along X and Y:
         // https://www.desmos.com/calculator/kcpfvltz7c
+        // The returned {z} is (1/14, 13/14) with 2/14 interval.
         private static void GetJitterSequence(Vector3[] seq)
         {
             float r = 0.17054068870105443882f;

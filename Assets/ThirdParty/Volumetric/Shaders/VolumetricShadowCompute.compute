@@ -8,11 +8,9 @@
 [numthreads(8, 8, 16)]
 void WriteShadowVolumeDir(uint3 pos : SV_DispatchThreadID)
 {
-    float3 froxelPos = pos;
-
-    float3 worldPos = FroxelPos2WorldPos(pos);
+    float3 jitterFroxelPos = JitterFroxelPos(pos);
+    float3 worldPos = FroxelPos2WorldPos(jitterFroxelPos);
     
     float visibility = SampleShadow(float4(worldPos, 1));
-     
     _ShadowVolume[pos] = visibility;
 }
