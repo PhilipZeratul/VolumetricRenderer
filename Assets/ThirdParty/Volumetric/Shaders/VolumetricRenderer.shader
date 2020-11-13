@@ -77,7 +77,7 @@
                 float3 froxelPos = WorldPosToFroxelPos(worldPos);
 
                 float3 uvw = FroxelPosToFroxelUvw(froxelPos);
-                float4 accumulationVolume = _AccumulationVolumeSrv.Sample(sampler_bilinear_clamp, uvw);
+                float4 accumulationVolume = _AccumulationVolumeSrv.SampleLevel(sampler_bilinear_clamp, uvw, 0);
 
                 float3 accumuLight = accumulationVolume.rgb;
                 float totalTransmittance = accumulationVolume.a;

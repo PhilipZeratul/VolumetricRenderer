@@ -22,6 +22,7 @@ RWTexture3D<float4> _AccumulationVolume, _PrevAccumulationVolume; // RGB: Accumu
 
 Texture2D<float> _ShadowMapTexture;
 Texture2D<float> _CameraDepthTexture;
+Texture3D<float> _PrevShadowVolumeSrv;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -39,7 +40,7 @@ float _NearPlane, _VolumeDistance;
 
 float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y: cot(Fov_y / 2), 
                              // z: depthDistribution * (volumeDepth - near * volumeDepth / volumeDistance) + 1, 
-                             // w: volumeDistance / depthDistribution / far
+                             // w: volumeDistance / depthDistribution / volumeDepth
 float4x4 _ViewToWorldMat;
 float4x4 _WorldToViewMat;
 float4x4 _PrevWorldToViewMat;
@@ -89,7 +90,7 @@ float3 JitterFroxelPos(float3 froxelPos)
 {
     // Jitter
     float3 jitter = 0;
-    jitter.xy = _FroxelSampleOffset.xy * 0.7;
+    jitter.xy = _FroxelSampleOffset.xy;
     jitter.z = frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z);
     //froxelPos.z += _FroxelSampleOffset.z;
     froxelPos += jitter;
@@ -166,6 +167,12 @@ float3 WorldPosToPrevFroxelPos(float3 worldPos)
     float3 froxelPos = ViewPosToFroxelPos(viewPos.xyz);
     return froxelPos;
 }
+
+//
+// ------------------------------------ Sample ----------------------------------------------
+//
+
+
 
 //
 // ------------------------------------ Shadow ----------------------------------------------

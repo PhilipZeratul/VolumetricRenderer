@@ -222,6 +222,7 @@ namespace Volumetric
         private RenderTargetIdentifier prevAccumulationVolumeTargetId;
 
         private readonly int prevShadowVolumeId = Shader.PropertyToID("_PrevShadowVolume");
+        private readonly int prevShadowVolumeSrvId = Shader.PropertyToID("_PrevShadowVolumeSrv");
         private readonly int prevMaterialVolumeAId = Shader.PropertyToID("_PrevMaterialVolume_A");
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
         private readonly int prevAccumulationVolumeId = Shader.PropertyToID("_PrevAccumulationVolume");
@@ -250,7 +251,8 @@ namespace Volumetric
             int temporalBlendShadowVolumeKernel = compute.FindKernel("TemporalBlendShadowVolume");
             command.SetComputeFloatParam(compute, temporalBlendAlphaId, temporalBlendAlpha);
             command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, shadowVolumeId, shadowVolumeTargetId);
-            command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
+            //command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
+            command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeSrvId, prevShadowVolumeTargetId);
 
             command.DispatchCompute(compute, temporalBlendShadowVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
