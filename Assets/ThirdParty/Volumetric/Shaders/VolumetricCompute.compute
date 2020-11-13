@@ -105,7 +105,7 @@ void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
     float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
     float prevShadow = _PrevShadowVolumeSrv.SampleLevel(sampler_bilinear_clamp, prevUvw, 0);
     
-    // A quick and dirty method to reject samples out of previous frustum.
+    // A quick and dirty way to reject samples outside of previous frustum.
     // May reject some valid 0 values, but it doesn't hurt.
     bool reprojSuccess = prevShadow != 0;
     if (reprojSuccess)
