@@ -621,10 +621,10 @@ namespace Volumetric
                 Color oldColor = Gizmos.color;
 
                 Gizmos.color = new Color(0.1f, 0.8f, 0.1f, 0.4f);
-                Vector3 bl = FroxelPos2WorldPos(new Vector3(0, 0, slice));
-                Vector3 br = FroxelPos2WorldPos(new Vector3(volumeWidth - 1, 0, slice));
-                Vector3 tl = FroxelPos2WorldPos(new Vector3(0, volumeHeight - 1, slice));
-                Vector3 tr = FroxelPos2WorldPos(new Vector3(volumeWidth - 1, volumeHeight - 1, slice));
+                Vector3 bl = FroxelPosToWorldPos(new Vector3(0, 0, slice));
+                Vector3 br = FroxelPosToWorldPos(new Vector3(volumeWidth - 1, 0, slice));
+                Vector3 tl = FroxelPosToWorldPos(new Vector3(0, volumeHeight - 1, slice));
+                Vector3 tr = FroxelPosToWorldPos(new Vector3(volumeWidth - 1, volumeHeight - 1, slice));
 
                 Mesh sliceMesh = new Mesh();
                 sliceMesh.RecalculateBounds();
@@ -637,7 +637,7 @@ namespace Volumetric
                 Gizmos.color = oldColor;
             }
         }
-        Vector3 FroxelPos2WorldPos(Vector3 froxelPos)
+        Vector3 FroxelPosToWorldPos(Vector3 froxelPos)
         {
             Vector4 viewPos = Vector4.one;
             viewPos.z = (Mathf.Pow(froxelToWorldParams.z, froxelPos.z / (volumeDepth - 1)) - 1) * froxelToWorldParams.w + nearPlane;

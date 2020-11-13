@@ -5,7 +5,6 @@
 #include "Random.hlsl"
 
 #define PI 3.1415926535
-#define EXPONENT 8.0
 
 //
 // ------------------------------------ Parameters ----------------------------------------------
@@ -21,10 +20,7 @@ RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: Transmission
 RWTexture3D<float4> _AccumulationVolume, _PrevAccumulationVolume; // RGB: Accumulated Light, A: Total Transmittance
 
-RWTexture2D<float> _EsmShadowMapUav;
-Texture2D<float> _EsmShadowMapTex;
 Texture2D<float> _ShadowMapTexture;
-
 Texture2D<float> _CameraDepthTexture;
 
 float3 _ScatteringCoef;
@@ -41,14 +37,17 @@ float3 _LightDir;
 int _VolumeWidth, _VolumeHeight, _VolumeDepth; // Value - 1
 float _NearPlane, _VolumeDistance;
 
-float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y, cot(Fov_y / 2), z: c * (f - n * f / d) + 1, w: d / c / f
+float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y: cot(Fov_y / 2), 
+                             // z: depthDistribution * (volumeDepth - near * volumeDepth / volumeDistance) + 1, 
+                             // w: volumeDistance / depthDistribution / far
 float4x4 _ViewToWorldMat;
 float4x4 _WorldToViewMat;
 float4x4 _PrevWorldToViewMat;
 
-float _TemporalOffset;
 float _TemporalBlendAlpha;
 float3 _FroxelSampleOffset; // xy: -0.5 <-> 0.5, z: 1/14 <-> 13/14
+// TODO: _IsTemporalHistoryValid
+uint _IsTemporalHistoryValid;
 
 //
 // ------------------------------------ Miscellaneous ----------------------------------------------
@@ -98,7 +97,7 @@ float3 JitterFroxelPos(float3 froxelPos)
 }
 
 // https://www.desmos.com/calculator/pd3c4qqsng
-float3 FroxelPos2ViewPos(float3 froxelPos)
+float3 FroxelPosToViewPos(float3 froxelPos)
 {
     float3 viewPos = 1;
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
@@ -108,15 +107,15 @@ float3 FroxelPos2ViewPos(float3 froxelPos)
     return viewPos;
 }
 
-float3 FroxelPos2WorldPos(float3 froxelPos)
+float3 FroxelPosToWorldPos(float3 froxelPos)
 {
-    float3 viewPos = FroxelPos2ViewPos(froxelPos);
+    float3 viewPos = FroxelPosToViewPos(froxelPos);
     float4 worldPos = mul(_ViewToWorldMat, float4(viewPos, 1));
     worldPos /= worldPos.w;
     return worldPos.xyz;
 }
 
-float3 ViewPos2FroxelPos(float3 viewPos)
+float3 ViewPosToFroxelPos(float3 viewPos)
 {
     float3 froxelPos = 0;
     froxelPos.z = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (viewPos.z - _NearPlane) / _FroxelToWorldParams.w + 1);
@@ -127,44 +126,44 @@ float3 ViewPos2FroxelPos(float3 viewPos)
     return froxelPos;
 }
 
-float3 WorldPos2FroxelPos(float3 worldPos)
+float3 WorldPosToFroxelPos(float3 worldPos)
 {
     float4 viewPos = mul(_WorldToViewMat, float4(worldPos, 1));
     viewPos /= viewPos.w;
 
-    float3 froxelPos = ViewPos2FroxelPos(viewPos.xyz);
+    float3 froxelPos = ViewPosToFroxelPos(viewPos.xyz);
     return froxelPos;
 }
 
-float2 FroxelPos2Uv(float2 froxelPos)
+float2 FroxelPosToUv(float2 froxelPos)
 {
     return float2(froxelPos.x / _VolumeWidth, froxelPos.y / _VolumeHeight);
 }
 
-float3 WorldPos2FroxelUvw(float3 worldPos)
+float3 WorldPosToFroxelUvw(float3 worldPos)
 {
-    float3 froxelPos = WorldPos2FroxelPos(worldPos);
+    float3 froxelPos = WorldPosToFroxelPos(worldPos);
     float3 froxelUvw = froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
     return froxelUvw;
 }
 
-float Depth2FroxelPosZ(float depth)
+float DepthToFroxelPosZ(float depth)
 {
     float froxelPosZ = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (depth - _NearPlane) / _FroxelToWorldParams.w + 1);
     return froxelPosZ;
 }
 
-float3 FroxelPos2FroxelUvw(float3 froxelPos)
+float3 FroxelPosToFroxelUvw(float3 froxelPos)
 {
     return froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
 }
 
-float3 WorldPos2PrevFroxelPos(float3 worldPos)
+float3 WorldPosToPrevFroxelPos(float3 worldPos)
 {
     float4 viewPos = mul(_PrevWorldToViewMat, float4(worldPos, 1));
     viewPos /= viewPos.w;
 
-    float3 froxelPos = ViewPos2FroxelPos(viewPos.xyz);
+    float3 froxelPos = ViewPosToFroxelPos(viewPos.xyz);
     return froxelPos;
 }
 

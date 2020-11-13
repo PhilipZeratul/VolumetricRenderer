@@ -74,9 +74,9 @@
                 float viewDepth = LinearEyeDepth(depth);
 
                 float3 worldPos = viewDirWS * viewDepth + _WorldSpaceCameraPos.xyz;
-                float3 froxelPos = WorldPos2FroxelPos(worldPos);
+                float3 froxelPos = WorldPosToFroxelPos(worldPos);
 
-                float3 uvw = FroxelPos2FroxelUvw(froxelPos);
+                float3 uvw = FroxelPosToFroxelUvw(froxelPos);
                 float4 accumulationVolume = _AccumulationVolumeSrv.Sample(sampler_bilinear_clamp, uvw);
 
                 float3 accumuLight = accumulationVolume.rgb;
