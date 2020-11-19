@@ -141,22 +141,21 @@ float2 FroxelPosToUv(float2 froxelPos)
     return float2(froxelPos.x / _VolumeWidth, froxelPos.y / _VolumeHeight);
 }
 
+float3 FroxelPosToFroxelUvw(float3 froxelPos)
+{
+    return froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
+
+}
 float3 WorldPosToFroxelUvw(float3 worldPos)
 {
     float3 froxelPos = WorldPosToFroxelPos(worldPos);
-    float3 froxelUvw = froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
-    return froxelUvw;
+    return FroxelPosToFroxelUvw(froxelPos);
 }
 
 float DepthToFroxelPosZ(float depth)
 {
     float froxelPosZ = _VolumeDepth * LogWithBase(_FroxelToWorldParams.z, (depth - _NearPlane) / _FroxelToWorldParams.w + 1);
     return froxelPosZ;
-}
-
-float3 FroxelPosToFroxelUvw(float3 froxelPos)
-{
-    return froxelPos / float3(_VolumeWidth, _VolumeHeight, _VolumeDepth);
 }
 
 float3 WorldPosToPrevFroxelPos(float3 worldPos)
