@@ -63,6 +63,8 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
     float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
     float cosTheta = dot(viewDir, -_LightDir);
 
+    visibility = pow(visibility, 10);
+
     float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * scatterCoef;
     float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
 
@@ -76,7 +78,7 @@ void Accumulation(uint2 pos : SV_DispatchThreadID)
     uint3 curPos = uint3(pos.xy, 0);
     uint3 prevPos = uint3(pos.xy, 0);
 
-    for (int i = 0; i <= _VolumeDepth; i++)
+    for (int i = 1; i <= _VolumeDepth; i++)
     {
         curPos.z = i;
         prevPos.z = i - 1;

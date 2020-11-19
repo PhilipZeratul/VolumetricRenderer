@@ -26,9 +26,10 @@ namespace Volumetric
 
         [Space]
         [SerializeField]
+        [ColorUsage(false, true)]
         private Color scatteringColor = new Color(0.58f, 0.58f, 0.58f);
         [SerializeField]
-        [Range(0.00001f, 1.0f)]
+        //[Range(0.00001f, 10.0f)]
         private float absorption = 0.58f;
         [Range(0.0f, 0.99f)]
         public float phaseG = 0.002f;

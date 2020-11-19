@@ -20,7 +20,6 @@ namespace Volumetric
         [Range(10f, 1000f)]
         public float volumeDistance = 100f; // 50 - 100m in AC4
 
-        //
         [Space]
         [SerializeField]
         private Shader shader;

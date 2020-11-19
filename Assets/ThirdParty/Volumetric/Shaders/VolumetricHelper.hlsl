@@ -221,7 +221,7 @@ float SampleShadow(float4 wpos)
 
 float4 ScatterStep(float3 accumuLight, float totalTransmittance, float3 inScatterLight, float sliceExtinction, float stepLength)
 {
-    float sliceTransmittance = exp(-sliceExtinction / stepLength);
+    float sliceTransmittance = exp(-sliceExtinction * stepLength);
     float3 sliceLightIntegral = inScatterLight * (1.0 - sliceTransmittance) / sliceExtinction;
 
     accumuLight += sliceLightIntegral * totalTransmittance;
