@@ -71,29 +71,26 @@ void WriteScatterVolumeDir(uint3 pos : SV_DispatchThreadID)
 
 [numthreads(8, 8, 1)]
 void Accumulation(uint2 pos : SV_DispatchThreadID)
-{
-    uint3 curPos = uint3(pos.xy, _AccumulationSlice);
-    uint3 prevPos = uint3(pos.xy, _AccumulationSlice - 1);
-    
-    float4 accumulationVolume = _AccumulationVolume[prevPos];
-    float3 accumuLight = accumulationVolume.rgb;
-    float totalTransmittance = accumulationVolume.a;
+{    
+    float4 accumulation = float4(0, 0, 0, 1);
+    uint3 curPos = uint3(pos.xy, 0);
+    uint3 prevPos = uint3(pos.xy, 0);
 
-    float4 materialVolumeA = _MaterialVolume_A[curPos];
-    float4 scatterVolume = _ScatterVolume[curPos];
-    float3 scatterCoef = materialVolumeA.rgb;
-    float3 inScatter = scatterVolume.rgb;
-    float extinction = scatterVolume.a;
+    for (int i = 0; i <= _VolumeDepth; i++)
+    {
+        curPos.z = i;
+        prevPos.z = i - 1;
+        float4 scatterVolume = _ScatterVolume[curPos];
+        float3 inScatter = scatterVolume.rgb;
+        float extinction = scatterVolume.a;
 
-    float3 curViewPos = FroxelPosToViewPos(curPos).xyz;
-    float3 prevViewPos = FroxelPosToViewPos(prevPos).xyz;
-    float stepLength = curViewPos.z - prevViewPos.z;
+        float3 curViewPos = FroxelPosToViewPos(curPos).xyz;
+        float3 prevViewPos = FroxelPosToViewPos(prevPos).xyz;
+        float stepLength = curViewPos.z - prevViewPos.z;
 
-    float transmittance = exp(-extinction * stepLength);
-    totalTransmittance *= transmittance;
-    accumuLight += inScatter * totalTransmittance * stepLength;
-
-    _AccumulationVolume[curPos] = float4(accumuLight, totalTransmittance);
+        accumulation = ScatterStep(accumulation.rgb, accumulation.a, inScatter, extinction, stepLength);
+        _AccumulationVolume[curPos] = accumulation;
+    }
 }
 
 [numthreads(8, 8, 16)]

@@ -538,7 +538,6 @@ namespace Volumetric
         private RenderTargetIdentifier accumulationVolumeTargetId;
 
         private readonly int accumulationVolumeId = Shader.PropertyToID("_AccumulationVolume");
-        private readonly int accumulationSliceId = Shader.PropertyToID("_AccumulationSlice");
 
         private int accumulationKernel;
 
@@ -550,15 +549,9 @@ namespace Volumetric
         private void Accumulate()
         {
             accumulationKernel = compute.FindKernel("Accumulation");
-            command.SetComputeTextureParam(compute, accumulationKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
             command.SetComputeTextureParam(compute, accumulationKernel, accumulationVolumeId, accumulationVolumeTargetId);
-
-            for (int i = 1; i < volumeDepth; i++)
-            {
-                command.SetComputeIntParam(compute, accumulationSliceId, i);
-                command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
-            }
+            command.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
         }
     }
 

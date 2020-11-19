@@ -30,7 +30,6 @@ float _PhaseG;
 Texture3D<float> _NoiseTex;
 float3 _NoiseScrollingSpeed;
 float3 _NoiseTiling;
-int _AccumulationSlice;
 
 float3 _LightColor;
 float3 _LightDir;
@@ -214,6 +213,20 @@ float SampleShadow(float4 wpos)
     float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_ShadowMapTexture, shadowCoord.xy, shadowCoord.z);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
     return shadow;
+}
+
+//
+// ------------------------------------ Functions ----------------------------------------------
+//
+
+float4 ScatterStep(float3 accumuLight, float totalTransmittance, float3 inScatterLight, float sliceExtinction, float stepLength)
+{
+    float sliceTransmittance = exp(-sliceExtinction / stepLength);
+    float3 sliceLightIntegral = inScatterLight * (1.0 - sliceTransmittance) / sliceExtinction;
+
+    accumuLight += sliceLightIntegral * totalTransmittance;
+    totalTransmittance *= sliceTransmittance;
+    return float4(accumuLight, totalTransmittance);
 }
 
 #endif //VOLUMETRIC_HELPER
