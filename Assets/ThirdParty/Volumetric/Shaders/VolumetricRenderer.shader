@@ -66,9 +66,31 @@
 
             int _MaxSteps;
 
+
+
+            inline int ihash(int n)
+            {
+                n = (n<<13)^n;
+                return (n*(n*n*15731+789221)+1376312589) & 2147483647;
+            }
+
+            inline float frand(int n)
+            {
+                return ihash(n) / 2147483647.0;
+            }
+
+            inline float2 cellNoise(int2 p)
+            {
+                float4 randomSeed = float4(1, 2, 3, 4);
+                int i = p.y * 256 + p.x;
+                return sin(float2(frand(i), frand(i + 57)) * randomSeed.xy + randomSeed.zw);
+            }
+
+
+
             float4 frag(v2f IN) : SV_Target
             {
-                float3 viewDirWS = IN.viewDir;// / IN.viewDir.z;
+                float3 viewDirWS = IN.viewDir;
 
                 float depth = _CameraDepthTexture.SampleLevel(sampler_bilinear_clamp, IN.uv, 0).r;
                 float viewDepth = LinearEyeDepth(depth);
@@ -77,6 +99,8 @@
                 float3 froxelPos = WorldPosToFroxelPos(worldPos);
 
                 float3 uvw = FroxelPosToFroxelUvw(froxelPos);
+                //uvw.xy += cellNoise(uvw.xy * float2(_VolumeWidth, _VolumeHeight)) / _ScreenParams.xy;
+
                 float4 accumulationVolume = _AccumulationVolumeSrv.SampleLevel(sampler_bilinear_clamp, uvw, 0);
 
                 float3 accumuLight = accumulationVolume.rgb;

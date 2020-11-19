@@ -127,7 +127,7 @@ namespace Volumetric
     // Misc
     public partial class VolumetricRenderer
     {
-        [Range(0.1f, 1.0f)]
+        [Range(0.1f, 2.0f)]
         public float depthDistribution = 0.5f;
         private CommandBuffer beforeGBufferCommand;
 
@@ -250,7 +250,6 @@ namespace Volumetric
             int temporalBlendShadowVolumeKernel = compute.FindKernel("TemporalBlendShadowVolume");
             command.SetComputeFloatParam(compute, temporalBlendAlphaId, temporalBlendAlpha);
             command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, shadowVolumeId, shadowVolumeTargetId);
-            //command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeId, prevShadowVolumeTargetId);
             command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeSrvId, prevShadowVolumeTargetId);
 
             command.DispatchCompute(compute, temporalBlendShadowVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
