@@ -9,6 +9,7 @@
 #pragma kernel TemporalBlendShadowVolume
 #pragma kernel TemporalBlendMaterialVolume
 #pragma kernel TemporalBlendScatterVolume
+#pragma kernel TemporalBlendAccumulationVolume
 
 #include "VolumetricHelper.hlsl"
 
@@ -42,7 +43,7 @@ void WriteMaterialVolumeConstant(uint3 pos : SV_DispatchThreadID)
         float3 jitterFroxelPos = JitterFroxelPos(pos);
         float3 worldPos = FroxelPosToWorldPos(jitterFroxelPos);
         float3 uvw = worldPos * _NoiseTiling + _NoiseScrollingSpeed * _Time.x;
-        float noise = _NoiseTex.SampleLevel(sampler_bilinear_repeat, uvw, 0).r;
+        float noise = _NoiseTex.SampleLevel(sampler_bilinear_repeat, uvw, 0.0).r;
         _MaterialVolume_A[pos] *= noise;
     #endif
 }
@@ -102,9 +103,9 @@ void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
     float3 prevFroxelPos = WorldPosToPrevFroxelPos(worldPos);
 
     float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
-    float prevShadow = _PrevShadowVolumeSrv.SampleLevel(sampler_bilinear_clamp, prevUvw, 0);
+    float prevShadow = _PrevShadowVolumeSrv.SampleLevel(sampler_trilinear_clamp, prevUvw, 0.0);
     
-    float reprojSuccess = dot(prevUvw - saturate(prevUvw), 1) == 0.0;
+    float reprojSuccess = dot(prevUvw - saturate(prevUvw), 1.0) == 0.0;
     _ShadowVolume[pos] = lerp(_ShadowVolume[pos], prevShadow, _TemporalBlendAlpha * reprojSuccess);
 }
 
@@ -122,4 +123,17 @@ void TemporalBlendScatterVolume(uint3 pos : SV_DispatchThreadID)
     float3 worldPos = FroxelPosToWorldPos(pos);
     float3 prevFroxelPos = WorldPosToPrevFroxelPos(worldPos);
     //_ScatterVolume[pos] = lerp(_ScatterVolume[pos], + _PrevScatterVolume[prevFroxelPos], _TemporalBlendAlpha);
+}
+
+[numthreads(8, 8, 16)]
+void TemporalBlendAccumulationVolume(uint3 pos : SV_DispatchThreadID)
+{
+    float3 worldPos = FroxelPosToWorldPos(pos);
+    float3 prevFroxelPos = WorldPosToPrevFroxelPos(worldPos);
+
+    float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
+    float4 prevAccumulation = _PrevAccumulationVolumeSrv.SampleLevel(sampler_trilinear_clamp, prevUvw, 0.0);
+
+    float reprojSuccess = dot(prevUvw - saturate(prevUvw), 1.0) == 0.0;
+    _AccumulationVolume[pos] = lerp(_AccumulationVolume[pos], prevAccumulation, _TemporalBlendAlpha * reprojSuccess);
 }

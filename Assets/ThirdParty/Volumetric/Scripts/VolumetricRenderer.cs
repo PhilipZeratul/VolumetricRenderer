@@ -32,7 +32,7 @@ namespace Volumetric
 
         private const int volumeWidth = 160;
         private const int volumeHeight = 88;
-        private const int volumeDepth = 64;
+        private const int volumeDepth = 128;
         private const int dispatchWidth = volumeWidth / 8;
         private const int dispatchHeight = volumeHeight / 8;
         private const int dispatchDepth = volumeDepth / 16;
@@ -109,6 +109,7 @@ namespace Volumetric
             TemporalBlendScatterVolume();
 
             Accumulate();
+            TemporalBlendAccumulationVolume();
 
             SetProperyFinal();
             command.Blit(source, destination, volumetricMaterial, 0);
@@ -225,6 +226,7 @@ namespace Volumetric
         private readonly int prevMaterialVolumeAId = Shader.PropertyToID("_PrevMaterialVolume_A");
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
         private readonly int prevAccumulationVolumeId = Shader.PropertyToID("_PrevAccumulationVolume");
+        private readonly int prevAccumulationVolumeSrvId = Shader.PropertyToID("_PrevAccumulationVolumeSrv");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
         private readonly int froxelSampleOffsetId = Shader.PropertyToID("_FroxelSampleOffset");
         private readonly int prevWorldToViewMatId = Shader.PropertyToID("_PrevWorldToViewMat");
@@ -242,13 +244,13 @@ namespace Volumetric
             compute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
             compute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
             compute.SetMatrix(prevWorldToViewMatId, prevWorldToViewMat);
+            command.SetComputeFloatParam(compute, temporalBlendAlphaId, temporalBlendAlpha);
             shadowCompute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
         }
 
         private void TemporalBlendShadowVolume()
         {
             int temporalBlendShadowVolumeKernel = compute.FindKernel("TemporalBlendShadowVolume");
-            command.SetComputeFloatParam(compute, temporalBlendAlphaId, temporalBlendAlpha);
             command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, shadowVolumeId, shadowVolumeTargetId);
             command.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeSrvId, prevShadowVolumeTargetId);
 
@@ -272,6 +274,15 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, temporalBlendScatterVolumeKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
 
             command.DispatchCompute(compute, temporalBlendScatterVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+        }
+
+        private void TemporalBlendAccumulationVolume()
+        {
+            int temporalBlendAccumulationVolumeKernel = compute.FindKernel("TemporalBlendAccumulationVolume");
+            command.SetComputeTextureParam(compute, temporalBlendAccumulationVolumeKernel, accumulationVolumeId, accumulationVolumeTargetId);
+            command.SetComputeTextureParam(compute, temporalBlendAccumulationVolumeKernel, prevAccumulationVolumeSrvId, prevAccumulationVolumeTargetId);
+
+            command.DispatchCompute(compute, temporalBlendAccumulationVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
 
         private void SaveHistory()

@@ -11,6 +11,7 @@
 //
 SamplerState sampler_point_clamp;
 SamplerState sampler_bilinear_clamp;
+SamplerState sampler_trilinear_clamp;
 SamplerState sampler_bilinear_repeat;
 SamplerComparisonState sampler_ShadowMapTexture;
 
@@ -23,6 +24,7 @@ RWTexture3D<float4> _AccumulationVolume, _PrevAccumulationVolume; // RGB: Accumu
 Texture2D<float> _ShadowMapTexture;
 Texture2D<float> _CameraDepthTexture;
 Texture3D<float> _PrevShadowVolumeSrv;
+Texture3D<float4> _PrevAccumulationVolumeSrv;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -84,6 +86,16 @@ float PhaseFunction(float g, float cosTheta)
 //
 // ------------------------------------ Position Transformation ----------------------------------------------
 //
+
+float3 FroxelPosIntToFloat(uint3 froxelPos)
+{
+    return froxelPos + 0.5;
+}
+
+uint3 FroxelPosFloatToInt(float3 froxelPos)
+{
+    return floor(froxelPos);
+}
 
 float3 JitterFroxelPos(float3 froxelPos)
 {
