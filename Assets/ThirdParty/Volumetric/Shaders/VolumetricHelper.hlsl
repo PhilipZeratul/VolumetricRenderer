@@ -35,7 +35,7 @@ float3 _NoiseTiling;
 float3 _LightColor;
 float3 _LightDir;
 
-int _VolumeWidth, _VolumeHeight, _VolumeDepth; // Value - 1
+int _VolumeWidth, _VolumeHeight, _VolumeDepth;
 float _NearPlane, _VolumeDistance;
 
 float4 _FroxelToWorldParams; // x: cot(Fov_x / 2), y: cot(Fov_y / 2), 
@@ -100,7 +100,7 @@ float3 JitterFroxelPos(float3 froxelPos)
 {
     float3 jitter = 0;
     jitter.xy = _FroxelSampleOffset.xy;
-    jitter.z = frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z);
+    jitter.z += _FroxelSampleOffset.z;
     froxelPos += jitter;
     return froxelPos;
 }
