@@ -32,7 +32,7 @@ namespace Volumetric
 
         private const int volumeWidth = 160;
         private const int volumeHeight = 88;
-        private const int volumeDepth = 128;
+        private const int volumeDepth = 64;
         private const int dispatchWidth = volumeWidth / 8;
         private const int dispatchHeight = volumeHeight / 8;
         private const int dispatchDepth = volumeDepth / 16;

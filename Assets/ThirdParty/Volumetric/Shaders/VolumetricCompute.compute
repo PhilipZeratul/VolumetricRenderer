@@ -105,7 +105,7 @@ void TemporalBlendShadowVolume(uint3 pos : SV_DispatchThreadID)
     float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
     float prevShadow = _PrevShadowVolumeSrv.SampleLevel(sampler_trilinear_clamp, prevUvw, 0.0);
     
-    float reprojSuccess = dot(prevUvw - saturate(prevUvw), 1.0) == 0.0;
+    float reprojSuccess = dot(prevUvw.xy - saturate(prevUvw.xy), 1.0) == 0.0;
     _ShadowVolume[pos] = lerp(_ShadowVolume[pos], prevShadow, _TemporalBlendAlpha * reprojSuccess);
 }
 
@@ -134,6 +134,6 @@ void TemporalBlendAccumulationVolume(uint3 pos : SV_DispatchThreadID)
     float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
     float4 prevAccumulation = _PrevAccumulationVolumeSrv.SampleLevel(sampler_trilinear_clamp, prevUvw, 0.0);
 
-    float reprojSuccess = dot(prevUvw - saturate(prevUvw), 1.0) == 0.0;
+    float reprojSuccess = dot(prevUvw.xy - saturate(prevUvw.xy), 1.0) == 0.0;
     _AccumulationVolume[pos] = lerp(_AccumulationVolume[pos], prevAccumulation, _TemporalBlendAlpha * reprojSuccess);
 }
