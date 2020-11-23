@@ -11,7 +11,6 @@
 //
 SamplerState sampler_point_clamp;
 SamplerState sampler_bilinear_clamp;
-SamplerState sampler_trilinear_clamp;
 SamplerState sampler_bilinear_repeat;
 SamplerComparisonState sampler_ShadowMapTexture;
 
