@@ -192,9 +192,9 @@ namespace Volumetric
 
         private void SetPropertyGeneral()
         {
-            compute.SetInt(volumeWidthId, volumeWidth - 1);
-            compute.SetInt(volumeHeightId, volumeHeight - 1);
-            compute.SetInt(volumeDepthId, volumeDepth - 1);
+            compute.SetInt(volumeWidthId, volumeWidth);
+            compute.SetInt(volumeHeightId, volumeHeight);
+            compute.SetInt(volumeDepthId, volumeDepth);
             compute.SetFloat(nearPlaneId, nearPlane);
             compute.SetFloat(volumeDistanceId, volumeDistance);
             compute.SetMatrix(viewToWorldMatId, viewToWorldMat);
@@ -369,9 +369,9 @@ namespace Volumetric
 
             shadowCompute.SetVector(froxelToWorldParamsId, froxelToWorldParams);
             shadowCompute.SetMatrix(viewToWorldMatId, viewToWorldMat);
-            shadowCompute.SetInt(volumeWidthId, volumeWidth - 1);
-            shadowCompute.SetInt(volumeHeightId, volumeHeight - 1);
-            shadowCompute.SetInt(volumeDepthId, volumeDepth - 1);
+            shadowCompute.SetInt(volumeWidthId, volumeWidth);
+            shadowCompute.SetInt(volumeHeightId, volumeHeight);
+            shadowCompute.SetInt(volumeDepthId, volumeDepth);
             shadowCompute.SetFloat(volumeDistanceId, volumeDistance);
             shadowCompute.SetFloat(nearPlaneId, nearPlane);
 
@@ -590,9 +590,9 @@ namespace Volumetric
             volumetricMaterial.SetVector(froxelToWorldParamsId, froxelToWorldParams);
             volumetricMaterial.SetMatrix(worldToViewMatId, worldToViewMat);
             volumetricMaterial.SetInt(maxStepsId, maxSteps);
-            volumetricMaterial.SetInt(volumeWidthId, volumeWidth - 1);
-            volumetricMaterial.SetInt(volumeHeightId, volumeHeight - 1);
-            volumetricMaterial.SetInt(volumeDepthId, volumeDepth - 1);
+            volumetricMaterial.SetInt(volumeWidthId, volumeWidth);
+            volumetricMaterial.SetInt(volumeHeightId, volumeHeight);
+            volumetricMaterial.SetInt(volumeDepthId, volumeDepth);
             volumetricMaterial.SetFloat(volumeDistanceId, volumeDistance);
             volumetricMaterial.SetTexture(accumulationVolumeSrvId, accumulationVolume);
         }

@@ -86,23 +86,21 @@ float PhaseFunction(float g, float cosTheta)
 // ------------------------------------ Position Transformation ----------------------------------------------
 //
 
-float3 FroxelPosIntToFloat(uint3 froxelPos)
+float3 DiscreteToContinuous(uint3 froxelPosDisc)
 {
-    return froxelPos + 0.5;
+    return froxelPosDisc + 0.5;
 }
 
-uint3 FroxelPosFloatToInt(float3 froxelPos)
+uint3 ContinuousToDiscrete(float3 froxelPosCont)
 {
-    return floor(froxelPos);
+    return floor(froxelPosCont);
 }
 
 float3 JitterFroxelPos(float3 froxelPos)
 {
-    // Jitter
     float3 jitter = 0;
     jitter.xy = _FroxelSampleOffset.xy;
     jitter.z = frac(GenerateHashedRandomFloat(froxelPos.xy) + _FroxelSampleOffset.z);
-    //froxelPos.z += _FroxelSampleOffset.z;
     froxelPos += jitter;
     return froxelPos;
 }
@@ -114,7 +112,6 @@ float3 FroxelPosToViewPos(float3 froxelPos)
     viewPos.z = (pow(_FroxelToWorldParams.z, froxelPos.z / _VolumeDepth) - 1) * _FroxelToWorldParams.w + _NearPlane;
     viewPos.x = (2.0 * froxelPos.x / _VolumeWidth - 1) * viewPos.z / _FroxelToWorldParams.x;
     viewPos.y = (2.0 * froxelPos.y / _VolumeHeight - 1) * viewPos.z / _FroxelToWorldParams.y;
-    return viewPos;
     return viewPos;
 }
 
@@ -144,11 +141,6 @@ float3 WorldPosToFroxelPos(float3 worldPos)
 
     float3 froxelPos = ViewPosToFroxelPos(viewPos.xyz);
     return froxelPos;
-}
-
-float2 FroxelPosToUv(float2 froxelPos)
-{
-    return float2(froxelPos.x / _VolumeWidth, froxelPos.y / _VolumeHeight);
 }
 
 float3 FroxelPosToFroxelUvw(float3 froxelPos)

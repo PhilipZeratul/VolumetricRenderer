@@ -101,7 +101,7 @@
                 float3 uvw = FroxelPosToFroxelUvw(froxelPos);
                 //uvw.xy += cellNoise(uvw.xy * float2(_VolumeWidth, _VolumeHeight)) / _ScreenParams.xy;
 
-                float4 accumulationVolume = _AccumulationVolumeSrv.SampleLevel(sampler_trilinear_clamp, uvw, 0);
+                float4 accumulationVolume = _AccumulationVolumeSrv.SampleLevel(sampler_bilinear_clamp, uvw, 0);
 
                 float3 accumuLight = accumulationVolume.rgb;
                 float totalTransmittance = accumulationVolume.a;
