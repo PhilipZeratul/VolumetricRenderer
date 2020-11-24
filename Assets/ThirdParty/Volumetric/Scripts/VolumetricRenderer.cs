@@ -82,31 +82,36 @@ namespace Volumetric
             mainCamera.RemoveCommandBuffer(CameraEvent.BeforeGBuffer, commandBeforeGBuffer);
         }
 
-        private void OnRenderImage(RenderTexture source, RenderTexture destination)
+        private void OnPreRender()
         {
             commandBeforeGBuffer.Clear();
-            commandBeforeImageFx.Clear();
-
-            SetPropertyTemporal();
-
+            
             CalculateMatrices();
             SetPropertyGeneral();
 
             InitAllVolumes();
-            WriteShadowVolume();
-
-            TemporalBlendShadowVolume();
 
             WriteMaterialVolume();
-            TemporalBlendMaterialVolume();
+            WriteShadowVolume();
 
-            WriteScatterVolume();
+            WriteScatterVolumeEvent?.Invoke();
+        }
+
+        private void OnRenderImage(RenderTexture source, RenderTexture destination)
+        {
+            commandBeforeImageFx.Clear();
+
+            SetPropertyTemporal();
+            TemporalBlendMaterialVolume();
+            TemporalBlendShadowVolume();
+
+            WriteScatterVolumeDir();
             TemporalBlendScatterVolume();
 
             Accumulate();
             TemporalBlendAccumulationVolume();
 
-            SetProperyFinal();
+            SetProperyRender();
             commandBeforeImageFx.Blit(source, destination, volumetricMaterial, 0);
 
             SaveHistory();
@@ -232,17 +237,8 @@ namespace Volumetric
             compute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
             compute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
             compute.SetMatrix(prevWorldToViewMatId, prevWorldToViewMat);
-            commandBeforeImageFx.SetComputeFloatParam(compute, temporalBlendAlphaId, temporalBlendAlpha);
+            compute.SetFloat(temporalBlendAlphaId, temporalBlendAlpha);
             shadowCompute.SetVector(froxelSampleOffsetId, froxelSampleOffsetSeq[Time.frameCount % 7]);
-        }
-
-        private void TemporalBlendShadowVolume()
-        {
-            int temporalBlendShadowVolumeKernel = compute.FindKernel("TemporalBlendShadowVolume");
-            commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, shadowVolumeId, shadowVolumeTargetId);
-            commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeSrvId, prevShadowVolumeTargetId);
-
-            commandBeforeImageFx.DispatchCompute(compute, temporalBlendShadowVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
 
         private void TemporalBlendMaterialVolume()
@@ -253,6 +249,15 @@ namespace Volumetric
             commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendMaterialVolumeKernel, prevMaterialVolumeAId, prevMaterialVolumeATargetId);
 
             commandBeforeImageFx.DispatchCompute(compute, temporalBlendMaterialVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+        }
+
+        private void TemporalBlendShadowVolume()
+        {
+            int temporalBlendShadowVolumeKernel = compute.FindKernel("TemporalBlendShadowVolume");
+            commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, shadowVolumeId, shadowVolumeTargetId);
+            commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendShadowVolumeKernel, prevShadowVolumeSrvId, prevShadowVolumeTargetId);
+
+            commandBeforeImageFx.DispatchCompute(compute, temporalBlendShadowVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
 
         private void TemporalBlendScatterVolume()
@@ -428,17 +433,17 @@ namespace Volumetric
                         if (materialVolumes[i].noiseTex != null)
                         {
                             constantVolumeKernel++;
-                            commandBeforeImageFx.SetComputeTextureParam(compute, constantVolumeKernel, noiseTexId, materialVolumes[i].noiseTex);
-                            commandBeforeImageFx.SetComputeVectorParam(compute, noiseScrollingSpeedId, materialVolumes[i].scrollingSpeed);
-                            commandBeforeImageFx.SetComputeVectorParam(compute, noiseTilingId, materialVolumes[i].tiling);
+                            commandBeforeGBuffer.SetComputeTextureParam(compute, constantVolumeKernel, noiseTexId, materialVolumes[i].noiseTex);
+                            commandBeforeGBuffer.SetComputeVectorParam(compute, noiseScrollingSpeedId, materialVolumes[i].scrollingSpeed);
+                            commandBeforeGBuffer.SetComputeVectorParam(compute, noiseTilingId, materialVolumes[i].tiling);
                         }
-                        commandBeforeImageFx.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
-                        commandBeforeImageFx.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
-                        commandBeforeImageFx.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
-                        commandBeforeImageFx.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
-                        commandBeforeImageFx.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
+                        commandBeforeGBuffer.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeAId, materialVolumeATargetId);
+                        commandBeforeGBuffer.SetComputeTextureParam(compute, constantVolumeKernel, materialVolumeBId, materialVolumeBTargetId);
+                        commandBeforeGBuffer.SetComputeVectorParam(compute, scatteringCoefId, Color2Vector(materialVolumes[i].ScatteringCoef));
+                        commandBeforeGBuffer.SetComputeFloatParam(compute, absorptionCoefId, materialVolumes[i].AbsorptionCoef);
+                        commandBeforeGBuffer.SetComputeFloatParam(compute, phaseGId, materialVolumes[i].phaseG);
                         
-                        commandBeforeImageFx.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+                        commandBeforeGBuffer.DispatchCompute(compute, constantVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
                         break;
 
                     case VolumetricMaterialVolume.VolumeType.Box:
@@ -460,6 +465,8 @@ namespace Volumetric
     // In-Scatter Volume
     public partial class VolumetricRenderer
     {
+        public event Action WriteScatterVolumeEvent;
+
         private RenderTexture scatterVolume; // RGB: Scattering, A: Extinction
         private RenderTargetIdentifier scatterVolumeTargetId;
 
@@ -485,18 +492,21 @@ namespace Volumetric
                         dirLights.Add(light);
                     }
                     break;
+
                 case LightType.Point:
                     if (!pointLights.Contains(light))
                     {
                         pointLights.Add(light);
                     }
                     break;
+
                 case LightType.Spot:
                     if (!spotLights.Contains(light))
                     {
                         spotLights.Add(light);
                     }
                     break;
+
                 default:
                     break;
             }
@@ -514,16 +524,15 @@ namespace Volumetric
             CreateVolume(ref scatterVolume, ref scatterVolumeTargetId, "Scatter Volume");
         }
 
-        private void WriteScatterVolume()
+        private void WriteScatterVolumeDir()
         {
-            //volumetricMaterial.SetTexture(scatterVolumeId, scatterVolume);
-
             scatterVolumeDirKernel = compute.FindKernel("WriteScatterVolumeDir");
             commandBeforeImageFx.SetComputeTextureParam(compute, scatterVolumeDirKernel, shadowVolumeId, shadowVolumeTargetId);
             commandBeforeImageFx.SetComputeTextureParam(compute, scatterVolumeDirKernel, materialVolumeAId, materialVolumeATargetId);
             commandBeforeImageFx.SetComputeTextureParam(compute, scatterVolumeDirKernel, materialVolumeBId, materialVolumeBTargetId);
             commandBeforeImageFx.SetComputeTextureParam(compute, scatterVolumeDirKernel, scatterVolumeId, scatterVolumeTargetId);
 
+            // TODO: Multiple dir lights?
             for (int i = 0; i < dirLights.Count; i++)
             {
                 Color lightColor = dirLights[i].theLight.color * dirLights[i].theLight.intensity;
@@ -551,6 +560,29 @@ namespace Volumetric
                 }
             }
         }
+
+        public void WriteScatterVolumePoint(CommandBuffer command, Light theLight)
+        {
+            command.Clear();
+            scatterVolumePointKernel = compute.FindKernel("WriteScatterVolumePoint");
+            command.SetComputeTextureParam(compute, scatterVolumePointKernel, materialVolumeAId, materialVolumeATargetId);
+            command.SetComputeTextureParam(compute, scatterVolumePointKernel, materialVolumeBId, materialVolumeBTargetId);
+            command.SetComputeTextureParam(compute, scatterVolumePointKernel, scatterVolumeId, scatterVolumeTargetId);
+
+            command.SetComputeFloatParam(compute, "_PointLightRange", theLight.range);
+
+            Color lightColor = theLight.color * theLight.intensity;
+            lightColor.r = Mathf.Pow(lightColor.r, 2.2f);
+            lightColor.g = Mathf.Pow(lightColor.g, 2.2f);
+            lightColor.b = Mathf.Pow(lightColor.b, 2.2f);
+
+            command.SetComputeVectorParam(compute, lightColorId, lightColor);
+            command.DispatchCompute(compute, scatterVolumePointKernel, dispatchWidth, dispatchHeight, dispatchDepth);
+        }
+
+        public void WriteScatterVolumeSpot()
+        {
+        }
     }
 
     // Accumulation Pass
@@ -577,7 +609,7 @@ namespace Volumetric
         }
     }
 
-    // Final
+    // Final Render
     public partial class VolumetricRenderer
     {
         private Vector3[] frustumCorners = new Vector3[4];
@@ -587,7 +619,7 @@ namespace Volumetric
         private readonly int screenQuadCornersId = Shader.PropertyToID("_ScreenQuadCorners");
         private readonly int maxStepsId = Shader.PropertyToID("_MaxSteps");
 
-        private void SetProperyFinal()
+        private void SetProperyRender()
         {
             mainCamera.CalculateFrustumCorners(new Rect(0, 0, 1, 1), mainCamera.farClipPlane, mainCamera.stereoActiveEye, frustumCorners);
 

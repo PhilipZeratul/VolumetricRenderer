@@ -372,6 +372,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   volumetricShadow: 1
+  attenuationParams: {x: 0, y: 0, z: 0}
   theLight: {fileID: 170076734}
 --- !u!1 &240178905
 GameObject:
@@ -603,6 +604,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   volumetricShadow: 0
+  attenuationParams: {x: 0, y: 0, z: 0}
   theLight: {fileID: 433010238}
 --- !u!1 &534669902
 GameObject:
@@ -717,7 +719,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 534669902}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a89e4d3ac1bd20488fbd7f2ba2125b4, type: 3}
   m_Name: 
@@ -757,7 +759,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 534669902}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 543ddbe12367a4899b011d43ef41f357, type: 3}
   m_Name: 
@@ -817,7 +819,7 @@ Light:
   m_Shape: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 10
-  m_Range: 21.508373
+  m_Range: 23.2
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -878,6 +880,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   volumetricShadow: 0
+  attenuationParams: {x: 5.64, y: 0, z: 0.05}
   theLight: {fileID: 847011256}
 --- !u!1 &961599037
 GameObject:
@@ -1206,6 +1209,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   volumetricShadow: 0
+  attenuationParams: {x: 0, y: 0, z: 0}
   theLight: {fileID: 1179676551}
 --- !u!4 &1326939971 stripped
 Transform:

@@ -22,6 +22,7 @@ RWTexture3D<float4> _AccumulationVolume, _PrevAccumulationVolume; // RGB: Accumu
 
 Texture2D<float> _ShadowMapTexture;
 Texture2D<float> _CameraDepthTexture;
+Texture2D<float> _LightTextureB0;
 Texture3D<float> _PrevShadowVolumeSrv;
 Texture3D<float4> _PrevAccumulationVolumeSrv;
 
@@ -34,6 +35,10 @@ float3 _NoiseTiling;
 
 float3 _LightColor;
 float3 _LightDir;
+
+// Point light
+float4 _LightPos;
+float _PointLightRange;
 
 int _VolumeWidth, _VolumeHeight, _VolumeDepth;
 float _NearPlane, _VolumeDistance;
@@ -230,6 +235,19 @@ float4 ScatterStep(float3 accumuLight, float totalTransmittance, float3 inScatte
     accumuLight += sliceLightIntegral * totalTransmittance;
     totalTransmittance *= sliceTransmittance;
     return float4(accumuLight, totalTransmittance);
+}
+
+float Square(float x)
+{
+    return x * x;
+}
+
+float PointLightFalloff(float distance)
+{
+    float atten = distance * distance * _LightPos.w;
+    float falloff = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, float2(atten, 0.5), 0);
+
+    return falloff;
 }
 
 #endif //VOLUMETRIC_HELPER

@@ -48,6 +48,7 @@ namespace Volumetric
             {
                 volumetricRenderer.RegisterLight(this);
                 volumetricRenderer.WriteShadowVolumeEvent += WriteShadowVolume;
+                volumetricRenderer.WriteScatterVolumeEvent += WriteScatterVolume;
             }
         }
 
@@ -67,6 +68,7 @@ namespace Volumetric
             {
                 volumetricRenderer.UnregisterLight(this);
                 volumetricRenderer.WriteShadowVolumeEvent -= WriteShadowVolume;
+                volumetricRenderer.WriteScatterVolumeEvent -= WriteScatterVolume;
             }
         }
 
@@ -80,6 +82,22 @@ namespace Volumetric
                     break;
 
                 case LightType.Point:
+                    break;
+
+                case LightType.Spot:
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        private void WriteScatterVolume()
+        {
+            switch (theLight.type)
+            {
+                case LightType.Point:
+                    volumetricRenderer.WriteScatterVolumePoint(shadowCommand, theLight);
                     break;
 
                 case LightType.Spot:
