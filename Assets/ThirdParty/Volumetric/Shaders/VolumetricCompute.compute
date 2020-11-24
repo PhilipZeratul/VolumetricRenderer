@@ -85,7 +85,6 @@ void WriteScatterVolumeDir(uint3 posDisc : SV_DispatchThreadID)
 [numthreads(8, 8, 16)]
 void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
 {
-    // TODO: Jitter?
     float3 posCont = DiscreteToContinuous(posDisc);
     float3 worldPos = FroxelPosToWorldPos(posCont);
     float3 toLight = worldPos - _LightPos.xyz;

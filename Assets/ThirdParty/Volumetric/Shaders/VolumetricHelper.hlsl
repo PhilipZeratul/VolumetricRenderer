@@ -182,7 +182,7 @@ float3 WorldPosToPrevFroxelPos(float3 worldPos)
  * Gets the cascade weights based on the world position of the fragment and the poisitions of the split spheres for each cascade.
  * Returns a float4 with only one component set that corresponds to the appropriate cascade.
  */
-inline float4 getCascadeWeights_splitSpheres(float3 wpos)
+inline float4 GetCascadeWeights_SplitSpheres(float3 wpos)
 {
     float3 fromCenter0 = wpos.xyz - unity_ShadowSplitSpheres[0].xyz;
     float3 fromCenter1 = wpos.xyz - unity_ShadowSplitSpheres[1].xyz;
@@ -198,7 +198,7 @@ inline float4 getCascadeWeights_splitSpheres(float3 wpos)
  * Returns the shadowmap coordinates for the given fragment based on the world position and z-depth.
  * These coordinates belong to the shadowmap atlas that contains the maps for all cascades.
  */
-inline float4 getShadowCoord(float4 wpos, float4 cascadeWeights)
+inline float4 GetShadowCoord(float4 wpos, float4 cascadeWeights)
 {
     float3 sc0 = mul(unity_WorldToShadow[0], wpos).xyz;
     float3 sc1 = mul(unity_WorldToShadow[1], wpos).xyz;
@@ -212,15 +212,23 @@ inline float4 getShadowCoord(float4 wpos, float4 cascadeWeights)
     return shadowMapCoordinate;
 }
 
-float SampleShadow(float4 wpos)
+float SampleDirShadow(float4 wpos)
 {
-    float4 cascadeWeights = getCascadeWeights_splitSpheres(wpos);
-    float4 shadowCoord = getShadowCoord(wpos, cascadeWeights);
+    float4 cascadeWeights = GetCascadeWeights_SplitSpheres(wpos);
+    float4 shadowCoord = GetShadowCoord(wpos, cascadeWeights);
 
     //1 tap hard shadow
     float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_ShadowMapTexture, shadowCoord.xy, shadowCoord.z);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
     return shadow;
+}
+
+half SamplePointShadow(half fade, float3 vec, float2 uv)
+{
+    half shadowAttenuation = 1.0f;
+
+
+    return shadowAttenuation;
 }
 
 //
