@@ -218,6 +218,7 @@ namespace Volumetric
         private readonly int prevShadowVolumeSrvId = Shader.PropertyToID("_PrevShadowVolumeSrv");
         private readonly int prevMaterialVolumeAId = Shader.PropertyToID("_PrevMaterialVolume_A");
         private readonly int prevScatterVolumeId = Shader.PropertyToID("_PrevScatterVolume");
+        private readonly int prevScatterVolumeSrvId = Shader.PropertyToID("_PrevScatterVolumeSrv");
         private readonly int prevAccumulationVolumeId = Shader.PropertyToID("_PrevAccumulationVolume");
         private readonly int prevAccumulationVolumeSrvId = Shader.PropertyToID("_PrevAccumulationVolumeSrv");
         private readonly int temporalBlendAlphaId = Shader.PropertyToID("_TemporalBlendAlpha");
@@ -264,7 +265,7 @@ namespace Volumetric
         {
             int temporalBlendScatterVolumeKernel = compute.FindKernel("TemporalBlendScatterVolume");
             commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendScatterVolumeKernel, scatterVolumeId, scatterVolumeTargetId);
-            commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendScatterVolumeKernel, prevScatterVolumeId, prevScatterVolumeTargetId);
+            commandBeforeImageFx.SetComputeTextureParam(compute, temporalBlendScatterVolumeKernel, prevScatterVolumeSrvId, prevScatterVolumeTargetId);
 
             commandBeforeImageFx.DispatchCompute(compute, temporalBlendScatterVolumeKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
@@ -311,13 +312,13 @@ namespace Volumetric
             //  (7)(5)    ( )( )    ( )( )    ( )( )    ( )( )    ( )(o)    ( )(x)    (o)(x)    (x)(x)
             // (2)(1)(3) ( )(o)( ) (o)(x)( ) (x)(x)(o) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x) (x)(x)(x)
             //  (4)(6)    ( )( )    ( )( )    ( )( )    (o)( )    (x)( )    (x)(o)    (x)(x)    (x)(x)
-            seq[0] = new Vector3(0, 0, 1 / 14f);
-            seq[1] = new Vector3(-d, 0, 3 / 14f);
-            seq[2] = new Vector3(d, 0, 5 / 14f);
-            seq[3] = new Vector3(-r, -s, 7 / 14f);
-            seq[4] = new Vector3(r, s, 9 / 14f);
-            seq[5] = new Vector3(r, -s, 11 / 14f);
-            seq[6] = new Vector3(-r, s, 13 / 14f);
+            seq[0] = new Vector3(0, 0, 3 / 14f);
+            seq[1] = new Vector3(-d, 0, 11 / 14f);
+            seq[2] = new Vector3(d, 0, 1 / 14f);
+            seq[3] = new Vector3(-r, -s, 9 / 14f);
+            seq[4] = new Vector3(r, s, 7 / 14f);
+            seq[5] = new Vector3(r, -s, 13 / 14f);
+            seq[6] = new Vector3(-r, s, 5 / 14f);
 
             // Rotate the sampling pattern by 15 degrees.
             const float cos15 = 0.96592582628906828675f;
@@ -473,6 +474,7 @@ namespace Volumetric
         private readonly int scatterVolumeId = Shader.PropertyToID("_ScatterVolume");
         private readonly int lightColorId = Shader.PropertyToID("_LightColor");
         private readonly int lightDirId = Shader.PropertyToID("_LightDir");
+        private readonly int shadowCubeMapTextureId = Shader.PropertyToID("_ShadowCubeMapTexture");
 
         private int scatterVolumeDirKernel;
         private int scatterVolumePointKernel;
@@ -568,6 +570,7 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, materialVolumeBId, materialVolumeBTargetId);
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, scatterVolumeId, scatterVolumeTargetId);
+            command.SetComputeTextureParam(compute, scatterVolumePointKernel, shadowCubeMapTextureId, shadowMapTextureTargetId);
 
             command.SetComputeFloatParam(compute, "_PointLightRange", theLight.range);
 
@@ -591,6 +594,7 @@ namespace Volumetric
         private RenderTexture accumulationVolume;
         private RenderTargetIdentifier accumulationVolumeTargetId;
 
+        private readonly int scatterVolumeSrvId = Shader.PropertyToID("_ScatterVolumeSrv");
         private readonly int accumulationVolumeId = Shader.PropertyToID("_AccumulationVolume");
 
         private int accumulationKernel;
@@ -603,7 +607,7 @@ namespace Volumetric
         private void Accumulate()
         {
             accumulationKernel = compute.FindKernel("Accumulation");
-            commandBeforeImageFx.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeId, scatterVolumeTargetId);
+            commandBeforeImageFx.SetComputeTextureParam(compute, accumulationKernel, scatterVolumeSrvId, scatterVolumeTargetId);
             commandBeforeImageFx.SetComputeTextureParam(compute, accumulationKernel, accumulationVolumeId, accumulationVolumeTargetId);
             commandBeforeImageFx.DispatchCompute(compute, accumulationKernel, dispatchWidth, dispatchHeight, 1);
         }

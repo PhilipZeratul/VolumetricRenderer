@@ -6,6 +6,7 @@
 #pragma kernel WriteMaterialVolumeConstant _WITH_NOISE
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel WriteScatterVolumePoint
+#pragma kernel WriteScatterVolumePoint _SAMPLE_POINT_SHADOW
 //#pragma kernel WriteScatterVolumeSpot
 #pragma kernel Accumulation
 #pragma kernel TemporalBlendShadowVolume
@@ -86,6 +87,8 @@ void WriteScatterVolumeDir(uint3 posDisc : SV_DispatchThreadID)
 void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
 {
     float3 posCont = DiscreteToContinuous(posDisc);
+    posCont = JitterFroxelPos(posCont);
+
     float3 worldPos = FroxelPosToWorldPos(posCont);
     float3 toLight = worldPos - _LightPos.xyz;
     float lightDirLength = length(toLight);
@@ -97,8 +100,10 @@ void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
 
     float3 lightDir = toLight / lightDirLength;
 
-    //TODO: Sample shadow.
     float visibility = 1.0;
+    //#ifdef _SAMPLE_POINT_SHADOW
+        visibility = SamplePointShadow(toLight);
+    //#endif
 
     float4 materialVolumeA = _MaterialVolume_A[posDisc];
     float4 materialVolumeB = _MaterialVolume_B[posDisc];
@@ -119,6 +124,7 @@ void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
     float extinction = 0;
 
     _ScatterVolume[posDisc] += float4(inScatter, extinction);
+    //_ScatterVolume[posDisc] = float4(inScatter, extinction);
 }
 
 //
@@ -135,12 +141,16 @@ void Accumulation(uint2 posDisc : SV_DispatchThreadID)
     {
         curPosDisc.z = i;
         prevPosDisc.z = i - 1;
-        float4 scatterVolume = _ScatterVolume[curPosDisc];
-        float3 inScatter = scatterVolume.rgb;
-        float extinction = scatterVolume.a;
 
         float3 curPosCont = DiscreteToContinuous(curPosDisc);
         float3 prevPosCont = DiscreteToContinuous(prevPosDisc);
+
+        float3 curUvw = FroxelPosToFroxelUvw(JitterFroxelPos(curPosCont));
+        float4 scatterVolume = _ScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, curUvw, 0.0);
+
+        float3 inScatter = scatterVolume.rgb;
+        float extinction = scatterVolume.a;
+        
         float3 curViewPos = FroxelPosToViewPos(curPosCont).xyz;
         float3 prevViewPos = FroxelPosToViewPos(prevPosCont).xyz;
         float stepLength = curViewPos.z - prevViewPos.z;
@@ -186,7 +196,12 @@ void TemporalBlendScatterVolume(uint3 posDisc : SV_DispatchThreadID)
 
     float3 worldPos = FroxelPosToWorldPos(posCont);
     float3 prevFroxelPos = WorldPosToPrevFroxelPos(worldPos);
-    //_ScatterVolume[posDisc] = lerp(_ScatterVolume[posDisc], + _PrevScatterVolume[prevFroxelPos], _TemporalBlendAlpha);
+
+    float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
+    float4 prevScatter = _PrevScatterVolumeSrv.SampleLevel(sampler_bilinear_clamp, prevUvw, 0.0);
+
+    float reprojSuccess = dot(prevUvw.xy - saturate(prevUvw.xy), 1.0) == 0.0;
+    //_ScatterVolume[posDisc] = lerp(_ScatterVolume[posDisc], prevScatter, _TemporalBlendAlpha * reprojSuccess);
 }
 
 [numthreads(8, 8, 16)]

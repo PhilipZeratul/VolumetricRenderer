@@ -86,7 +86,7 @@
                 float4 color = 1;
                 color.rgb = mainTex * totalTransmittance + accumuLight;
 
-                color.rgb = accumuLight;
+                //color.rgb = accumuLight;
                 color.a = totalTransmittance;
 
                 return color;

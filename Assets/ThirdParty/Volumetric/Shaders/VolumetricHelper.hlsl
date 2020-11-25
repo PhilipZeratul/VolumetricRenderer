@@ -12,19 +12,21 @@
 SamplerState sampler_point_clamp;
 SamplerState sampler_bilinear_clamp;
 SamplerState sampler_bilinear_repeat;
-SamplerComparisonState sampler_ShadowMapTexture;
+SamplerComparisonState sampler_bilinear_clamp_compare;
 
 RWTexture3D<float> _ShadowVolume, _PrevShadowVolume; // R: Visibility
 RWTexture3D<float4> _MaterialVolume_A, _PrevMaterialVolume_A; // RGB: Scattering Coef, A: Absorption
 RWTexture3D<float4> _MaterialVolume_B; // R: Phase G
 RWTexture3D<float4> _ScatterVolume, _PrevScatterVolume; // RGB: Scattered Light, A: Transmission
 RWTexture3D<float4> _AccumulationVolume, _PrevAccumulationVolume; // RGB: Accumulated Light, A: Total Transmittance
+Texture3D<float> _PrevShadowVolumeSrv;
+Texture3D<float4> _ScatterVolumeSrv, _PrevScatterVolumeSrv;
+Texture3D<float4> _PrevAccumulationVolumeSrv;
 
 Texture2D<float> _ShadowMapTexture;
+TextureCube<float> _ShadowCubeMapTexture;
 Texture2D<float> _CameraDepthTexture;
 Texture2D<float> _LightTextureB0;
-Texture3D<float> _PrevShadowVolumeSrv;
-Texture3D<float4> _PrevAccumulationVolumeSrv;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -218,17 +220,31 @@ float SampleDirShadow(float4 wpos)
     float4 shadowCoord = GetShadowCoord(wpos, cascadeWeights);
 
     //1 tap hard shadow
-    float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_ShadowMapTexture, shadowCoord.xy, shadowCoord.z);
+    float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_bilinear_clamp_compare, shadowCoord.xy, shadowCoord.z);
     shadow = lerp(_LightShadowData.r, 1.0, shadow);
     return shadow;
 }
 
-half SamplePointShadow(half fade, float3 vec, float2 uv)
+half UnityComputeShadowFade(float fadeDist)
 {
-    half shadowAttenuation = 1.0f;
+    return saturate(fadeDist * _LightShadowData.z + _LightShadowData.w);
+}
 
+half SamplePointShadow(float3 vec)
+{
+    float3 absVec = abs(vec);
+    float dominantAxis = max(max(absVec.x, absVec.y), absVec.z);
+    dominantAxis = max(0.00001, dominantAxis - _LightProjectionParams.z); // shadow bias from point light is apllied here.
+    dominantAxis *= _LightProjectionParams.w; // bias
+    float mydist = -_LightProjectionParams.x + _LightProjectionParams.y / dominantAxis; // project to shadow map clip space [0; 1]
 
-    return shadowAttenuation;
+    #if defined(UNITY_REVERSED_Z)
+        mydist = 1.0 - mydist; // depth buffers are reversed! Additionally we can move this to CPP code!
+    #endif
+
+    half shadow = _ShadowCubeMapTexture.SampleCmpLevelZero(sampler_bilinear_clamp_compare, vec.xyz, mydist);
+    //return lerp(_LightShadowData.r, 1.0, shadow);
+    return shadow;
 }
 
 //
@@ -253,7 +269,7 @@ float Square(float x)
 float PointLightFalloff(float distance)
 {
     float atten = distance * distance * _LightPos.w;
-    float falloff = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, float2(atten, 0.5), 0);
+    float falloff = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, float2(atten, 0.5), 0).r;
 
     return falloff;
 }
