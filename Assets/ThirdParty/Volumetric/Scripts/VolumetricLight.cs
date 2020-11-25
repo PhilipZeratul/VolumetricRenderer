@@ -7,7 +7,7 @@ namespace Volumetric
     [RequireComponent(typeof(Light))]
     public class VolumetricLight : MonoBehaviour
     {
-        public bool volumetricShadow = false;
+        public bool hasVolumetricShadow = false;
 
         [HideInInspector]
         public Light theLight;
@@ -97,7 +97,7 @@ namespace Volumetric
             switch (theLight.type)
             {
                 case LightType.Point:
-                    volumetricRenderer.WriteScatterVolumePoint(shadowCommand, theLight);
+                    volumetricRenderer.WriteScatterVolumePoint(shadowCommand, this);
                     break;
 
                 case LightType.Spot:

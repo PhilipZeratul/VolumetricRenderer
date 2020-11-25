@@ -563,18 +563,23 @@ namespace Volumetric
             }
         }
 
-        public void WriteScatterVolumePoint(CommandBuffer command, Light theLight)
+        public void WriteScatterVolumePoint(CommandBuffer command, VolumetricLight light)
         {
             command.Clear();
             scatterVolumePointKernel = compute.FindKernel("WriteScatterVolumePoint");
+            if (light.hasVolumetricShadow)
+            {
+                scatterVolumePointKernel++;
+            }
+
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, materialVolumeAId, materialVolumeATargetId);
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, materialVolumeBId, materialVolumeBTargetId);
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, scatterVolumeId, scatterVolumeTargetId);
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, shadowCubeMapTextureId, shadowMapTextureTargetId);
 
-            command.SetComputeFloatParam(compute, "_PointLightRange", theLight.range);
+            command.SetComputeFloatParam(compute, "_PointLightRange", light.theLight.range);
 
-            Color lightColor = theLight.color * theLight.intensity;
+            Color lightColor = light.theLight.color * light.theLight.intensity;
             lightColor.r = Mathf.Pow(lightColor.r, 2.2f);
             lightColor.g = Mathf.Pow(lightColor.g, 2.2f);
             lightColor.b = Mathf.Pow(lightColor.b, 2.2f);
