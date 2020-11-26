@@ -608,7 +608,8 @@ namespace Volumetric
             command.SetComputeFloatParam(compute, "_SpotCosOuterCone", Mathf.Cos(Mathf.Deg2Rad * light.theLight.spotAngle / 2.0f));
             command.SetComputeFloatParam(compute, "_SpotCosInnerConeRcp", 1.0f / Mathf.Cos(Mathf.Deg2Rad * light.innerAnglePercent * light.theLight.spotAngle / 2.0f));
             command.SetComputeFloatParam(compute, "_LightAttenuationMultiplier", light.intensityMultiplier);
-            
+            command.SetComputeFloatParam(compute, "_SpotLightRange", light.theLight.range);
+
 
             Color lightColor = light.theLight.color * light.theLight.intensity;
             lightColor.r = Mathf.Pow(lightColor.r, 2.2f);

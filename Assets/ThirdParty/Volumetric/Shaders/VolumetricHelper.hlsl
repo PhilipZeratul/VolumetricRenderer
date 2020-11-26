@@ -47,6 +47,7 @@ float _PointLightRange;
 // Spot light
 float4x4 unity_WorldToLight;
 float3 _SpotLightDir;
+float _SpotLightRange;
 float _SpotCosOuterCone;
 float _SpotCosInnerConeRcp;
 
@@ -285,7 +286,7 @@ float PointLightFalloff(float distance)
     return falloff;
 }
 
-float SpotLightFalloff(float3 worldPos, float3 lightToPosDir, float distance)
+float SpotLightFalloff(float3 worldPos, float distance, float cosAngle)
 {
     // Cookie
     //float4 uvCookie = mul(unity_WorldToLight, float4(worldPos, 1));
@@ -296,7 +297,6 @@ float SpotLightFalloff(float3 worldPos, float3 lightToPosDir, float distance)
     float att = distance * distance * _LightPos.w;
     float distAtten = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, att.rr, 0.0).r;
 
-    float cosAngle = dot(lightToPosDir, _SpotLightDir);
     float coneAtten = 1.0 - smoothstep(1.0 / _SpotCosInnerConeRcp, _SpotCosOuterCone, cosAngle);
 
     return coneAtten * distAtten * _LightAttenuationMultiplier;

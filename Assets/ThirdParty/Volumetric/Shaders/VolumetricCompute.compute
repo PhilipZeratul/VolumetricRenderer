@@ -101,10 +101,6 @@ void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
 
     float3 lightToPosDir = lightToPos / distance;
 
-    float visibility = 1.0;
-    #ifdef _SAMPLE_POINT_SHADOW
-        visibility = SamplePointShadow(lightToPos);
-    #endif
     float3 falloff = PointLightFalloff(distance);
 
     float4 materialVolumeA = _MaterialVolume_A[posDisc];
@@ -117,9 +113,13 @@ void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
     float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
     float cosTheta = dot(viewDir, -lightToPosDir);
 
-    float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * falloff * scatterCoef;
+    float3 inScatter = PhaseFunction(phaseG, cosTheta) * _LightColor * falloff * scatterCoef;
     //float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
     float extinction = 0;
+
+    #ifdef _SAMPLE_POINT_SHADOW
+        inScatter *= SamplePointShadow(lightToPos);
+    #endif
 
     _ScatterVolume[posDisc] += float4(inScatter, extinction);
     //_ScatterVolume[posDisc] = float4(inScatter, extinction);
@@ -135,11 +135,12 @@ void WriteScatterVolumeSpot(uint3 posDisc : SV_DispatchThreadID)
     float3 lightToPos = worldPos - _LightPos.xyz;
     float distance = length(lightToPos);
     float3 lightToPosDir = lightToPos / distance;
+    float cosAngle = dot(lightToPosDir, _SpotLightDir);
 
-    float visibility = 1.0;
-    #ifdef _SAMPLE_SPOT_SHADOW
-        visibility = SampleSpotShadow(worldPos);
-    #endif
+    if ((distance > _SpotLightRange) || (cosAngle < _SpotCosOuterCone))
+    {
+        return;
+    }
 
     float4 materialVolumeA = _MaterialVolume_A[posDisc];
     float4 materialVolumeB = _MaterialVolume_B[posDisc];
@@ -150,18 +151,16 @@ void WriteScatterVolumeSpot(uint3 posDisc : SV_DispatchThreadID)
 
     float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
     float cosTheta = dot(viewDir, -lightToPosDir);
-
         
-    float4 lightCoord = mul(unity_WorldToLight, float4(worldPos, 1));
-    lightCoord /= lightCoord.w;
-    float falloff = SpotLightFalloff(worldPos, lightToPosDir, distance);
+    float falloff = SpotLightFalloff(worldPos, distance, cosAngle);
     
-    //unityShadowCoord4 lightCoord = mul(unity_WorldToLight, unityShadowCoord4(worldPos, 1));
-    //fixed destName = (lightCoord.z > 0) * UnitySpotCookie(lightCoord) * UnitySpotAttenuate(lightCoord.xyz) * SHADOW_ATTENUATION(input);
-
-    float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * falloff * scatterCoef;
+    float3 inScatter = PhaseFunction(phaseG, cosTheta) * _LightColor * falloff * scatterCoef;
     //float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
     float extinction = 0;
+
+    #ifdef _SAMPLE_SPOT_SHADOW
+        inScatter *= SampleSpotShadow(worldPos);
+    #endif
 
     _ScatterVolume[posDisc] += float4(inScatter, extinction);
     //_ScatterVolume[posDisc] = float4(inScatter, extinction);
