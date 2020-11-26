@@ -7,7 +7,8 @@
 #pragma kernel WriteScatterVolumeDir
 #pragma kernel WriteScatterVolumePoint
 #pragma kernel WriteScatterVolumePoint _SAMPLE_POINT_SHADOW
-//#pragma kernel WriteScatterVolumeSpot
+#pragma kernel WriteScatterVolumeSpot
+#pragma kernel WriteScatterVolumeSpot _SAMPLE_SPOT_SHADOW
 #pragma kernel Accumulation
 #pragma kernel TemporalBlendShadowVolume
 #pragma kernel TemporalBlendMaterialVolume
@@ -90,19 +91,54 @@ void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
     posCont = JitterFroxelPos(posCont);
 
     float3 worldPos = FroxelPosToWorldPos(posCont);
-    float3 toLight = worldPos - _LightPos.xyz;
-    float lightDirLength = length(toLight);
+    float3 lightToPos = worldPos - _LightPos.xyz;
+    float distance = length(lightToPos);
     
-    if (lightDirLength > _PointLightRange)
+    if (distance > _PointLightRange)
     {
         return;
     }
 
-    float3 lightDir = toLight / lightDirLength;
+    float3 lightToPosDir = lightToPos / distance;
 
     float visibility = 1.0;
     #ifdef _SAMPLE_POINT_SHADOW
-        visibility = SamplePointShadow(toLight);
+        visibility = SamplePointShadow(lightToPos);
+    #endif
+    float3 falloff = PointLightFalloff(distance);
+
+    float4 materialVolumeA = _MaterialVolume_A[posDisc];
+    float4 materialVolumeB = _MaterialVolume_B[posDisc];
+
+    float3 scatterCoef = materialVolumeA.rgb;
+    float absorptCoef = materialVolumeA.a;
+    float phaseG = materialVolumeB.r;
+
+    float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
+    float cosTheta = dot(viewDir, -lightToPosDir);
+
+    float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * falloff * scatterCoef;
+    //float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
+    float extinction = 0;
+
+    _ScatterVolume[posDisc] += float4(inScatter, extinction);
+    //_ScatterVolume[posDisc] = float4(inScatter, extinction);
+}
+
+[numthreads(8, 8, 16)]
+void WriteScatterVolumeSpot(uint3 posDisc : SV_DispatchThreadID)
+{
+    float3 posCont = DiscreteToContinuous(posDisc);
+    posCont = JitterFroxelPos(posCont);
+
+    float3 worldPos = FroxelPosToWorldPos(posCont);
+    float3 lightToPos = worldPos - _LightPos.xyz;
+    float distance = length(lightToPos);
+    float3 lightToPosDir = lightToPos / distance;
+
+    float visibility = 1.0;
+    #ifdef _SAMPLE_SPOT_SHADOW
+        visibility = SampleSpotShadow(worldPos);
     #endif
 
     float4 materialVolumeA = _MaterialVolume_A[posDisc];
@@ -113,13 +149,17 @@ void WriteScatterVolumePoint(uint3 posDisc : SV_DispatchThreadID)
     float phaseG = materialVolumeB.r;
 
     float3 viewDir = normalize(worldPos - _WorldSpaceCameraPos);
-    float cosTheta = dot(viewDir, -lightDir);
+    float cosTheta = dot(viewDir, -lightToPosDir);
 
-    float3 attenuation = _LightColor;
-    float3 falloff = PointLightFalloff(lightDirLength);
-    attenuation *= falloff;
+        
+    float4 lightCoord = mul(unity_WorldToLight, float4(worldPos, 1));
+    lightCoord /= lightCoord.w;
+    float falloff = SpotLightFalloff(worldPos, lightToPosDir, distance);
+    
+    //unityShadowCoord4 lightCoord = mul(unity_WorldToLight, unityShadowCoord4(worldPos, 1));
+    //fixed destName = (lightCoord.z > 0) * UnitySpotCookie(lightCoord) * UnitySpotAttenuate(lightCoord.xyz) * SHADOW_ATTENUATION(input);
 
-    float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * attenuation * scatterCoef;
+    float3 inScatter = visibility * PhaseFunction(phaseG, cosTheta) * _LightColor * falloff * scatterCoef;
     //float extinction = Rgb2Gray(scatterCoef) + absorptCoef;
     float extinction = 0;
 

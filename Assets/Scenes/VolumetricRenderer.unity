@@ -291,7 +291,7 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170076733}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
@@ -371,7 +371,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fab809b9726665140ace5c2dc2da4b1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumetricShadow: 1
+  hasVolumetricShadow: 1
+  innerAnglePercent: 0
+  attenuationMultiplier: 1
   theLight: {fileID: 170076734}
 --- !u!1 &240178905
 GameObject:
@@ -514,7 +516,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &433010237
 Transform:
   m_ObjectHideFlags: 0
@@ -522,13 +524,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 433010236}
-  m_LocalRotation: {x: 0.20342739, y: -0.5882048, z: 0.15600726, w: 0.7670034}
-  m_LocalPosition: {x: 4.86, y: 3.4, z: 7.55}
+  m_LocalRotation: {x: -0.14969218, y: -0.7846901, z: 0.20811853, w: -0.5643938}
+  m_LocalPosition: {x: -16.08, y: 5, z: 17.61}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1872705087}
   m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: 29.709002, y: -74.968, z: 0}
+  m_LocalEulerAnglesHint: {x: 29.709002, y: -251.452, z: 0}
 --- !u!108 &433010238
 Light:
   m_ObjectHideFlags: 0
@@ -540,10 +542,10 @@ Light:
   serializedVersion: 10
   m_Type: 0
   m_Shape: 0
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 10
-  m_Range: 10
-  m_SpotAngle: 67.05547
+  m_Color: {r: 1, g: 0, b: 0, a: 1}
+  m_Intensity: 6
+  m_Range: 34.42
+  m_SpotAngle: 66
   m_InnerSpotAngle: 50.93045
   m_CookieSize: 10
   m_Shadows:
@@ -602,7 +604,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fab809b9726665140ace5c2dc2da4b1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumetricShadow: 0
+  hasVolumetricShadow: 1
+  innerAnglePercent: 0.5
+  attenuationMultiplier: 8
   theLight: {fileID: 433010238}
 --- !u!1 &534669902
 GameObject:
@@ -789,7 +793,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &847011255
 Transform:
   m_ObjectHideFlags: 0
@@ -877,7 +881,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fab809b9726665140ace5c2dc2da4b1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumetricShadow: 0
+  hasVolumetricShadow: 1
+  innerAnglePercent: 0
+  attenuationMultiplier: 1
   theLight: {fileID: 847011256}
 --- !u!1 &961599037
 GameObject:
@@ -1205,7 +1211,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fab809b9726665140ace5c2dc2da4b1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumetricShadow: 0
+  hasVolumetricShadow: 0
+  innerAnglePercent: 0
+  attenuationMultiplier: 1
   theLight: {fileID: 1179676551}
 --- !u!4 &1326939971 stripped
 Transform:

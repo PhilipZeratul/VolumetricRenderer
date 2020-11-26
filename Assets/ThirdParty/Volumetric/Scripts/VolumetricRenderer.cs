@@ -578,6 +578,7 @@ namespace Volumetric
             command.SetComputeTextureParam(compute, scatterVolumePointKernel, shadowCubeMapTextureId, shadowMapTextureTargetId);
 
             command.SetComputeFloatParam(compute, "_PointLightRange", light.theLight.range);
+            command.SetComputeFloatParam(compute, "_LightAttenuationMultiplier", light.intensityMultiplier);
 
             Color lightColor = light.theLight.color * light.theLight.intensity;
             lightColor.r = Mathf.Pow(lightColor.r, 2.2f);
@@ -588,8 +589,34 @@ namespace Volumetric
             command.DispatchCompute(compute, scatterVolumePointKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
 
-        public void WriteScatterVolumeSpot()
+        public void WriteScatterVolumeSpot(CommandBuffer command, VolumetricLight light)
         {
+            command.Clear();
+            scatterVolumeSpotKernel = compute.FindKernel("WriteScatterVolumeSpot");
+            if (light.hasVolumetricShadow)
+            {
+                scatterVolumeSpotKernel++;
+            }
+
+            command.SetComputeTextureParam(compute, scatterVolumeSpotKernel, materialVolumeAId, materialVolumeATargetId);
+            command.SetComputeTextureParam(compute, scatterVolumeSpotKernel, materialVolumeBId, materialVolumeBTargetId);
+            command.SetComputeTextureParam(compute, scatterVolumeSpotKernel, scatterVolumeId, scatterVolumeTargetId);
+            command.SetComputeTextureParam(compute, scatterVolumeSpotKernel, shadowMapTextureId, shadowMapTextureTargetId);
+            //compute.SetTextureFromGlobal(scatterVolumeSpotKernel, "_LightTexture0", "_LightTexture0");
+
+            command.SetComputeVectorParam(compute, "_SpotLightDir", light.transform.forward);
+            command.SetComputeFloatParam(compute, "_SpotCosOuterCone", Mathf.Cos(Mathf.Deg2Rad * light.theLight.spotAngle / 2.0f));
+            command.SetComputeFloatParam(compute, "_SpotCosInnerConeRcp", 1.0f / Mathf.Cos(Mathf.Deg2Rad * light.innerAnglePercent * light.theLight.spotAngle / 2.0f));
+            command.SetComputeFloatParam(compute, "_LightAttenuationMultiplier", light.intensityMultiplier);
+            
+
+            Color lightColor = light.theLight.color * light.theLight.intensity;
+            lightColor.r = Mathf.Pow(lightColor.r, 2.2f);
+            lightColor.g = Mathf.Pow(lightColor.g, 2.2f);
+            lightColor.b = Mathf.Pow(lightColor.b, 2.2f);
+
+            command.SetComputeVectorParam(compute, lightColorId, lightColor);
+            command.DispatchCompute(compute, scatterVolumeSpotKernel, dispatchWidth, dispatchHeight, dispatchDepth);
         }
     }
 

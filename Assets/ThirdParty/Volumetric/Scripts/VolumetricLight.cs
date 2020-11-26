@@ -8,6 +8,10 @@ namespace Volumetric
     public class VolumetricLight : MonoBehaviour
     {
         public bool hasVolumetricShadow = false;
+        [Range(0.0f, 1.0f)]
+        public float innerAnglePercent;
+        [Range(0.0f, 10.0f)]
+        public float intensityMultiplier = 1.0f;
 
         [HideInInspector]
         public Light theLight;
@@ -101,6 +105,7 @@ namespace Volumetric
                     break;
 
                 case LightType.Spot:
+                    volumetricRenderer.WriteScatterVolumeSpot(shadowCommand, this);
                     break;
 
                 default:

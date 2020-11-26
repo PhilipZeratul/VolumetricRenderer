@@ -27,6 +27,7 @@ Texture2D<float> _ShadowMapTexture;
 TextureCube<float> _ShadowCubeMapTexture;
 Texture2D<float> _CameraDepthTexture;
 Texture2D<float> _LightTextureB0;
+Texture2D<float> _LightTexture0;
 
 float3 _ScatteringCoef;
 float _AbsorptionCoef;
@@ -37,10 +38,17 @@ float3 _NoiseTiling;
 
 float3 _LightColor;
 float3 _LightDir;
+float _LightAttenuationMultiplier;
 
 // Point light
 float4 _LightPos;
 float _PointLightRange;
+
+// Spot light
+float4x4 unity_WorldToLight;
+float3 _SpotLightDir;
+float _SpotCosOuterCone;
+float _SpotCosInnerConeRcp;
 
 int _VolumeWidth, _VolumeHeight, _VolumeDepth;
 float _NearPlane, _VolumeDistance;
@@ -225,12 +233,7 @@ float SampleDirShadow(float4 wpos)
     return shadow;
 }
 
-half UnityComputeShadowFade(float fadeDist)
-{
-    return saturate(fadeDist * _LightShadowData.z + _LightShadowData.w);
-}
-
-half SamplePointShadow(float3 vec)
+float SamplePointShadow(float3 vec)
 {
     float3 absVec = abs(vec);
     float dominantAxis = max(max(absVec.x, absVec.y), absVec.z);
@@ -242,8 +245,15 @@ half SamplePointShadow(float3 vec)
         mydist = 1.0 - mydist; // depth buffers are reversed! Additionally we can move this to CPP code!
     #endif
 
-    half shadow = _ShadowCubeMapTexture.SampleCmpLevelZero(sampler_bilinear_clamp_compare, vec.xyz, mydist);
-    //return lerp(_LightShadowData.r, 1.0, shadow);
+    float shadow = _ShadowCubeMapTexture.SampleCmpLevelZero(sampler_bilinear_clamp_compare, vec.xyz, mydist);
+    return lerp(_LightShadowData.r, 1.0, shadow);
+}
+
+float SampleSpotShadow(float3 vec)
+{
+    float4 shadowCoord = mul(unity_WorldToShadow[0], float4(vec, 1));
+    float shadow = _ShadowMapTexture.SampleCmpLevelZero(sampler_bilinear_clamp_compare, shadowCoord.xy / shadowCoord.w, shadowCoord.z / shadowCoord.w);
+    shadow = lerp(_LightShadowData.r, 1.0f, shadow);
     return shadow;
 }
 
@@ -269,9 +279,27 @@ float Square(float x)
 float PointLightFalloff(float distance)
 {
     float atten = distance * distance * _LightPos.w;
-    float falloff = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, float2(atten, 0.5), 0).r;
+    float falloff = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, atten.rr, 0.0).r;
+    falloff *= _LightAttenuationMultiplier;
 
     return falloff;
+}
+
+float SpotLightFalloff(float3 worldPos, float3 lightToPosDir, float distance)
+{
+    // Cookie
+    //float4 uvCookie = mul(unity_WorldToLight, float4(worldPos, 1));
+    //// negative bias because http://aras-p.info/blog/2010/01/07/screenspace-vs-mip-mapping/
+    //float atten = _LightTexture0.SampleLevel(sampler_bilinear_clamp, uvCookie.xy / uvCookie.w, -8.0);
+    //atten *= uvCookie.w < 0;
+
+    float att = distance * distance * _LightPos.w;
+    float distAtten = _LightTextureB0.SampleLevel(sampler_bilinear_clamp, att.rr, 0.0).r;
+
+    float cosAngle = dot(lightToPosDir, _SpotLightDir);
+    float coneAtten = 1.0 - smoothstep(1.0 / _SpotCosInnerConeRcp, _SpotCosOuterCone, cosAngle);
+
+    return coneAtten * distAtten * _LightAttenuationMultiplier;
 }
 
 #endif //VOLUMETRIC_HELPER
