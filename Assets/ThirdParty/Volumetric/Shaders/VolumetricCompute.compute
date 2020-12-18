@@ -254,6 +254,6 @@ void TemporalBlendAccumulationVolume(uint3 posDisc : SV_DispatchThreadID)
     float3 prevUvw = FroxelPosToFroxelUvw(prevFroxelPos);
     float4 prevAccumulation = _PrevAccumulationVolumeSrv.SampleLevel(sampler_bilinear_clamp, prevUvw, 0.0);
 
-    float reprojSuccess = dot(prevUvw.xy - saturate(prevUvw.xy), 1.0) == 0.0;
+    float reprojSuccess = prevAccumulation.a != 0;
     _AccumulationVolume[posDisc] = lerp(_AccumulationVolume[posDisc], prevAccumulation, _TemporalBlendAlpha * reprojSuccess);
 }

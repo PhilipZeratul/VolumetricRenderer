@@ -85,7 +85,7 @@ namespace Volumetric
         private void OnPreRender()
         {
             commandBeforeGBuffer.Clear();
-            
+
             CalculateMatrices();
             SetPropertyGeneral();
 
@@ -95,6 +95,9 @@ namespace Volumetric
             WriteShadowVolume();
 
             WriteScatterVolumeEvent?.Invoke();
+            
+            // Need to be here, do not know why...
+            prevWorldToViewMat = worldToViewMat;
         }
 
         private void OnRenderImage(RenderTexture source, RenderTexture destination)
@@ -293,8 +296,6 @@ namespace Volumetric
             commandBeforeImageFx.SetComputeTextureParam(compute, saveHistoryKernel, prevAccumulationVolumeId, prevAccumulationVolumeTargetId);
 
             commandBeforeImageFx.DispatchCompute(compute, saveHistoryKernel, dispatchWidth, dispatchHeight, dispatchDepth);
-
-            prevWorldToViewMat = worldToViewMat;
         }
 
         // Ref: https://en.wikipedia.org/wiki/Close-packing_of_equal_spheres
